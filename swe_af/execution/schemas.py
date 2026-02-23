@@ -508,7 +508,7 @@ class BuildConfig(BaseModel):
     git_init_retry_delay: float = 1.0  # Seconds to wait between retries
     max_integration_test_retries: int = 1
     enable_integration_testing: bool = True
-    max_coding_iterations: int = 5
+    max_coding_iterations: int = 6
     agent_max_turns: int = DEFAULT_AGENT_MAX_TURNS
     execute_fn_target: str = ""
     permission_mode: str = ""
@@ -604,7 +604,7 @@ class ExecutionConfig(BaseModel):
     enable_replanning: bool = True
     max_integration_test_retries: int = 1
     enable_integration_testing: bool = True
-    max_coding_iterations: int = 5
+    max_coding_iterations: int = 6
     agent_max_turns: int = DEFAULT_AGENT_MAX_TURNS
     agent_timeout_seconds: int = 2700       # 45 min
     max_advisor_invocations: int = 2
