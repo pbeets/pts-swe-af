@@ -377,6 +377,7 @@ _RUNTIME_BASE_MODELS: dict[str, dict[str, str]] = {
         "git_model": "haiku",
         "merger_model": "haiku",
         "issue_writer_model": "haiku",
+        "sprint_planner_model": "haiku",
     },
     "open_code": {
         **{field: "minimax/minimax-m2.5" for field in ALL_MODEL_FIELDS},

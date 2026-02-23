@@ -111,11 +111,10 @@ class TestModelDowngrade(unittest.TestCase):
     def test_other_roles_still_sonnet(self) -> None:
         """Verify other roles (not downgraded) still default to sonnet."""
         resolved = resolve_runtime_models(runtime="claude_code", models=None)
-        # Planning roles should still be sonnet
+        # Planning roles should still be sonnet (except sprint_planner which is haiku)
         self.assertEqual(resolved["pm_model"], "sonnet")
         self.assertEqual(resolved["architect_model"], "sonnet")
         self.assertEqual(resolved["tech_lead_model"], "sonnet")
-        self.assertEqual(resolved["sprint_planner_model"], "sonnet")
         # Coding roles should still be sonnet
         self.assertEqual(resolved["coder_model"], "sonnet")
         self.assertEqual(resolved["qa_model"], "sonnet")

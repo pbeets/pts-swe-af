@@ -21,6 +21,7 @@ class TestResolveRuntimeModels(unittest.TestCase):
             "git_model",
             "merger_model",
             "issue_writer_model",
+            "sprint_planner_model",
         }
         for field in ALL_MODEL_FIELDS:
             if field in haiku_models:
