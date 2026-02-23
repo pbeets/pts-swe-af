@@ -655,6 +655,38 @@ async def run_coding_loop(
 
         _save_artifact(dag_state.artifacts_dir, iteration_id, "coder", coder_result)
 
+        # --- FAST-PATH: Trivial issues with passing tests on first iteration ---
+        # AC2: Check fast-path condition after coder completes
+        if is_trivial and coder_result.get("tests_passed") and iteration == 1:
+            # AC3: Fast-path approval logged with correct tags
+            if note_fn:
+                note_fn(
+                    f"Fast-path approval: {issue_name} (trivial, tests passed)",
+                    tags=["coding_loop", "fast_path", "approve", issue_name]
+                )
+
+            # Write to memory on approval
+            await _write_memory_on_approve(
+                memory_fn, issue, coder_result, is_first_success, note_fn,
+            )
+
+            # AC4 & AC5: Return IssueResult with outcome=COMPLETED, attempts=1, and fast_path=True in history
+            return IssueResult(
+                issue_name=issue_name,
+                outcome=IssueOutcome.COMPLETED,
+                result_summary=f"Trivial issue completed (1 iteration): {coder_result.get('summary', '')}",
+                files_changed=files_changed,
+                branch_name=branch_name,
+                attempts=1,
+                iteration_history=[{
+                    "iteration": 1,
+                    "action": "approve",
+                    "summary": "Fast-path approval (trivial, tests passed)",
+                    "fast_path": True,
+                    "path": "fast_path",
+                }],
+            )
+
         # --- 2. PATH BRANCH ---
         if needs_deeper_qa:
             # FLAGGED PATH: QA + reviewer parallel → synthesizer
