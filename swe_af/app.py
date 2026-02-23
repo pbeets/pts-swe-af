@@ -12,6 +12,7 @@ import asyncio
 import os
 import re
 import subprocess
+import time
 import uuid
 
 from swe_af.reasoners import router
@@ -164,6 +165,7 @@ async def build(
     build_id = uuid.uuid4().hex[:8]
 
     app.note(f"Build starting (build_id={build_id})", tags=["build", "start"])
+    build_start = time.time()
 
     # Compute absolute artifacts directory path for logging
     abs_artifacts_dir = os.path.join(os.path.abspath(repo_path), artifacts_dir)
@@ -378,6 +380,11 @@ async def build(
         f"{completed}/{total} issues, verification={'passed' if success else 'failed'}",
         tags=["build", "complete"],
     )
+    build_duration = time.time() - build_start
+    app.note(
+        f"Build duration: {build_duration:.1f}s ({build_duration/60:.1f}min)",
+        tags=["build", "metrics", "duration_s", f"duration:{build_duration:.1f}"]
+    )
 
     # Capture plan docs before finalize cleans up .artifacts/
     _plan_dir = os.path.join(
@@ -539,6 +546,7 @@ async def plan(
 
     # 1. PM scopes the goal into a PRD
     app.note("Phase 1: Product Manager", tags=["pipeline", "pm"])
+    pm_start = time.time()
     prd = _unwrap(await app.call(
         f"{NODE_ID}.run_product_manager",
         goal=goal,
@@ -549,9 +557,12 @@ async def plan(
         permission_mode=permission_mode,
         ai_provider=ai_provider,
     ), "run_product_manager")
+    pm_duration = time.time() - pm_start
+    app.note(f"PM: {pm_duration:.1f}s", tags=["pipeline", "pm", "duration_s", f"duration:{pm_duration:.1f}"])
 
     # 2. Architect designs the solution
     app.note("Phase 2: Architect", tags=["pipeline", "architect"])
+    architect_start = time.time()
     arch = _unwrap(await app.call(
         f"{NODE_ID}.run_architect",
         prd=prd,
@@ -561,9 +572,12 @@ async def plan(
         permission_mode=permission_mode,
         ai_provider=ai_provider,
     ), "run_architect")
+    architect_duration = time.time() - architect_start
+    app.note(f"Architect: {architect_duration:.1f}s", tags=["pipeline", "architect", "duration_s", f"duration:{architect_duration:.1f}"])
 
     # 3. Tech Lead review loop
     review = None
+    tech_lead_start = time.time()
     for i in range(max_review_iterations + 1):
         app.note(f"Phase 3: Tech Lead review (iteration {i})", tags=["pipeline", "tech_lead"])
         review = _unwrap(await app.call(
@@ -601,9 +615,12 @@ async def plan(
             complexity_assessment=review.get("complexity_assessment", "appropriate"),
             summary=review["summary"] + " [auto-approved after max iterations]",
         ).model_dump()
+    tech_lead_duration = time.time() - tech_lead_start
+    app.note(f"Tech Lead: {tech_lead_duration:.1f}s", tags=["pipeline", "tech_lead", "duration_s", f"duration:{tech_lead_duration:.1f}"])
 
     # 4. Sprint planner decomposes into issues
     app.note("Phase 4: Sprint Planner", tags=["pipeline", "sprint_planner"])
+    sprint_planner_start = time.time()
     sprint_result = _unwrap(await app.call(
         f"{NODE_ID}.run_sprint_planner",
         prd=prd,
@@ -614,6 +631,8 @@ async def plan(
         permission_mode=permission_mode,
         ai_provider=ai_provider,
     ), "run_sprint_planner")
+    sprint_planner_duration = time.time() - sprint_planner_start
+    app.note(f"Sprint Planner: {sprint_planner_duration:.1f}s", tags=["pipeline", "sprint_planner", "duration_s", f"duration:{sprint_planner_duration:.1f}"])
     issues = sprint_result["issues"]
     rationale = sprint_result["rationale"]
 
