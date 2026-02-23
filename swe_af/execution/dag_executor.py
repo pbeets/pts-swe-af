@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import re
+import time
 import traceback
 from typing import Callable
 
@@ -24,21 +25,73 @@ from swe_af.execution.schemas import (
 )
 
 # ---------------------------------------------------------------------------
-# Timeout wrapper
+# Timeout wrapper and agent metrics logging
 # ---------------------------------------------------------------------------
 
 
-async def _call_with_timeout(coro, timeout: int = 2700, label: str = ""):
+def _log_agent_metrics(
+    note_fn: Callable | None,
+    role: str,
+    duration: float,
+    success: bool,
+    iteration: int = 0,
+    extra_tags: list[str] | None = None
+) -> None:
+    """Log structured agent completion metrics.
+
+    Args:
+        note_fn: Optional note function to log metrics
+        role: Role key (e.g. "issue_advisor", "coder", "replanner")
+        duration: Agent execution duration in seconds
+        success: Whether the agent completed successfully
+        iteration: Iteration number (optional)
+        extra_tags: Additional tags to include (optional)
+    """
+    if note_fn is None:
+        return
+    tags = ["agent_metrics", f"role:{role}", f"duration:{duration:.1f}", f"success:{success}"]
+    if iteration > 0:
+        tags.append(f"iteration:{iteration}")
+    if extra_tags:
+        tags.extend(extra_tags)
+    note_fn(
+        f"{role}: {duration:.1f}s, success={success}",
+        tags=tags
+    )
+
+
+async def _call_with_timeout(
+    coro,
+    timeout: int = 2700,
+    label: str = "",
+    note_fn: Callable | None = None,
+    role: str = ""
+):
     """Wrap a coroutine with asyncio.wait_for timeout.
 
     Args:
         coro: An awaitable coroutine (already called, e.g. ``call_fn(...)``).
         timeout: Seconds before raising TimeoutError.
         label: Human-readable label for error messages.
+        note_fn: Optional note function for logging timeout events.
+        role: Role name for structured logging.
     """
     try:
-        return await asyncio.wait_for(coro, timeout=timeout)
+        start = time.time()
+        result = await asyncio.wait_for(coro, timeout=timeout)
+        duration = time.time() - start
+        if note_fn:
+            note_fn(
+                f"{label}: completed in {duration:.1f}s (timeout={timeout}s)",
+                tags=["agent_timeout", "success", f"role:{role}", f"duration:{duration:.1f}", f"timeout:{timeout}"]
+            )
+        return result
     except asyncio.TimeoutError:
+        if note_fn:
+            note_fn(
+                f"{label}: TIMEOUT after {timeout}s",
+                tags=["agent_timeout", "failure", f"role:{role}", f"timeout:{timeout}"]
+            )
         raise TimeoutError(
             f"Agent call '{label}' timed out after {timeout}s"
         )
@@ -462,6 +515,7 @@ async def _execute_single_issue(
 
     for advisor_round in range(max_advisor + 1):
         # --- Run the coding loop (or execute_fn) ---
+        coding_loop_start = time.time()
         if execute_fn is None and call_fn is not None:
             from swe_af.execution.coding_loop import run_coding_loop
             result = await run_coding_loop(
@@ -480,6 +534,13 @@ async def _execute_single_issue(
             )
         else:
             raise ValueError("No execute_fn or call_fn — cannot execute issue")
+
+        coding_loop_duration = time.time() - coding_loop_start
+        if note_fn:
+            note_fn(
+                f"Coding loop: {issue_name} iteration {result.attempts}, {coding_loop_duration:.1f}s",
+                tags=["coding_loop", "complete", issue_name, f"attempts:{result.attempts}", f"duration:{coding_loop_duration:.1f}"]
+            )
 
         last_result = result
 
@@ -502,6 +563,7 @@ async def _execute_single_issue(
             )
 
         try:
+            advisor_start = time.time()
             advisor_decision = await _call_with_timeout(
                 call_fn(
                     f"{node_id}.run_issue_advisor",
@@ -529,6 +591,23 @@ async def _execute_single_issue(
                 ),
                 timeout=config.agent_timeout_seconds,
                 label=f"issue_advisor:{issue_name}:{advisor_round + 1}",
+                note_fn=note_fn,
+                role="issue_advisor",
+            )
+            advisor_duration = time.time() - advisor_start
+            confidence = advisor_decision.get("confidence", 0.5)
+            if note_fn:
+                note_fn(
+                    f"Issue Advisor: {issue_name} iteration {advisor_round + 1}, confidence {confidence:.2f}, {advisor_duration:.1f}s",
+                    tags=["issue_advisor", "complete", issue_name, f"iteration:{advisor_round + 1}", f"confidence:{confidence:.2f}", f"duration:{advisor_duration:.1f}"]
+                )
+            _log_agent_metrics(
+                note_fn=note_fn,
+                role="issue_advisor",
+                duration=advisor_duration,
+                success=advisor_decision.get("action") not in ["ESCALATE_TO_REPLAN"],
+                iteration=advisor_round + 1,
+                extra_tags=[issue_name, f"confidence:{confidence:.2f}"]
             )
         except Exception as e:
             if note_fn:
@@ -888,6 +967,7 @@ async def _invoke_replanner_via_call(
                 "adaptations": [a.model_dump() for a in f.adaptations],
             })
 
+    replan_start = time.time()
     decision_dict = await call_fn(
         f"{node_id}.run_replanner",
         dag_state=dag_state.model_dump(),
@@ -896,7 +976,23 @@ async def _invoke_replanner_via_call(
         ai_provider=config.ai_provider,
         escalation_notes=escalation_notes,
     )
-    return ReplanDecision(**decision_dict)
+    replan_duration = time.time() - replan_start
+    decision = ReplanDecision(**decision_dict)
+
+    if note_fn:
+        note_fn(
+            f"Replanner: {replan_duration:.1f}s, action={decision.action}",
+            tags=["replanner", "complete", f"duration:{replan_duration:.1f}", f"action:{decision.action}"]
+        )
+    _log_agent_metrics(
+        note_fn=note_fn,
+        role="replanner",
+        duration=replan_duration,
+        success=decision.action != ReplanAction.ABORT,
+        extra_tags=[f"action:{decision.action}"]
+    )
+
+    return decision
 
 
 async def _invoke_replanner_direct(
