@@ -539,11 +539,35 @@ async def _execute_single_issue(
             break  # advisor failed — return last coding loop result
 
         action = advisor_decision.get("action", "accept_with_debt")
+        confidence = advisor_decision.get("confidence", 0.5)
 
         if note_fn:
             note_fn(
                 f"Issue Advisor decision for {issue_name}: {action}",
                 tags=["issue_advisor", "decision", issue_name],
+            )
+
+        # LOW-CONFIDENCE ESCALATION: If advisor has low confidence, escalate to replanner
+        if confidence < 0.4:
+            if note_fn:
+                note_fn(
+                    f"Advisor low confidence ({confidence:.2f}) — escalating {issue_name}",
+                    tags=["issue_advisor", "escalate", "low_confidence", issue_name],
+                )
+            return IssueResult(
+                issue_name=issue_name,
+                outcome=IssueOutcome.FAILED_ESCALATED,
+                result_summary=f"Advisor escalated due to low confidence ({confidence:.2f} < 0.4)",
+                error_message=advisor_decision.get("failure_diagnosis", ""),
+                error_context=result.error_context,
+                files_changed=result.files_changed,
+                branch_name=result.branch_name,
+                attempts=result.attempts,
+                advisor_invocations=advisor_round + 1,
+                adaptations=adaptations,
+                debt_items=debt_items,
+                escalation_context=f"Low advisor confidence: {confidence:.2f}. {advisor_decision.get('escalation_reason', '')}",
+                iteration_history=result.iteration_history,
             )
 
         if action == AdvisorAction.RETRY_MODIFIED.value:
