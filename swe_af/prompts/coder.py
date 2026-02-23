@@ -100,136 +100,69 @@ def coder_task_prompt(
     project_context: dict | None = None,
     memory_context: dict | None = None,
 ) -> str:
-    """Build the task prompt for the coder agent.
-
-    Args:
-        issue: The issue dict (name, title, description, acceptance_criteria, etc.)
-        worktree_path: Absolute path to the git worktree (cwd for the agent).
-        feedback: Merged feedback from previous iteration (empty on first pass).
-        iteration: Current iteration number (1-based).
-        project_context: Dict with artifact paths (prd_path, architecture_path, etc.).
-        memory_context: Dict with shared memory (codebase_conventions, failure_patterns,
-            dependency_interfaces, bug_patterns) from previous issues.
-    """
+    """Build the task prompt for the coder agent."""
     project_context = project_context or {}
     memory_context = memory_context or {}
-    sections: list[str] = []
-
-    sections.append("## Issue to Implement")
-    sections.append(f"- **Name**: {issue.get('name', '(unknown)')}")
-    sections.append(f"- **Title**: {issue.get('title', '(unknown)')}")
-
-    ac = issue.get("acceptance_criteria", [])
-    if ac:
+    sections: list[str] = ["## Issue to Implement",
+        f"- **Name**: {issue.get('name', '(unknown)')}",
+        f"- **Title**: {issue.get('title', '(unknown)')}"]
+    if ac := issue.get("acceptance_criteria", []):
         sections.append("- **Acceptance Criteria**:")
         sections.extend(f"  - [ ] {c}" for c in ac)
-
-    deps = issue.get("depends_on", [])
-    if deps:
-        sections.append(f"- **Dependencies**: {deps}")
-
-    provides = issue.get("provides", [])
-    if provides:
-        sections.append(f"- **Provides**: {provides}")
-
-    files_create = issue.get("files_to_create", [])
-    files_modify = issue.get("files_to_modify", [])
-    if files_create:
-        sections.append(f"- **Files to create**: {files_create}")
-    if files_modify:
-        sections.append(f"- **Files to modify**: {files_modify}")
-
-    testing_strategy = issue.get("testing_strategy", "")
-    if testing_strategy:
+    for key, label in [("depends_on", "Dependencies"), ("provides", "Provides")]:
+        if val := issue.get(key, []):
+            sections.append(f"- **{label}**: {val}")
+    for key, label in [("files_to_create", "Files to create"), ("files_to_modify", "Files to modify")]:
+        if val := issue.get(key, []):
+            sections.append(f"- **{label}**: {val}")
+    if testing_strategy := issue.get("testing_strategy", ""):
         sections.append(f"- **Testing Strategy**: {testing_strategy}")
-
-    # Sprint planner guidance — proportional testing and review hints
-    guidance = issue.get("guidance") or {}
-    testing_guidance = guidance.get("testing_guidance", "")
-    if testing_guidance:
+    if testing_guidance := (issue.get("guidance") or {}).get("testing_guidance", ""):
         sections.append(f"- **Testing Guidance (from sprint planner)**: {testing_guidance}")
-
-    # Project context — file paths only, agents read if needed
     if project_context:
-        sections.append("\n## Project Context")
         prd_path = project_context.get("prd_path", "")
         arch_path = project_context.get("architecture_path", "")
         issues_dir = project_context.get("issues_dir", "")
         if prd_path or arch_path or issues_dir:
-            sections.append("### Key Files")
+            sections.append("\n## Project Context\n### Key Files")
             if prd_path:
                 sections.append(f"- PRD: `{prd_path}` (read for full requirements)")
             if arch_path:
                 sections.append(f"- Architecture: `{arch_path}` (read for design decisions)")
             if issues_dir:
                 sections.append(f"- Issue files: `{issues_dir}/` (read your issue file for full details)")
-
-    # Shared memory context — learnings from previous issues
-    conventions = memory_context.get("codebase_conventions")
-    if conventions:
+    if conventions := memory_context.get("codebase_conventions"):
         sections.append("\n## Codebase Conventions (from prior issues)")
         if isinstance(conventions, dict):
-            for k, v in conventions.items():
-                sections.append(f"- **{k}**: {v}")
+            sections.extend(f"- **{k}**: {v}" for k, v in conventions.items())
         elif isinstance(conventions, list):
             sections.extend(f"- {c}" for c in conventions)
-
-    failure_patterns = memory_context.get("failure_patterns")
-    if failure_patterns:
+    if failure_patterns := memory_context.get("failure_patterns"):
         sections.append("\n## Known Failure Patterns (avoid these)")
-        for fp in failure_patterns[:5]:  # cap at 5 most recent
-            sections.append(f"- **{fp.get('pattern', '?')}** ({fp.get('issue', '?')}): {fp.get('description', '')}")
-
-    dep_interfaces = memory_context.get("dependency_interfaces")
-    if dep_interfaces:
+        sections.extend(
+            f"- **{fp.get('pattern', '?')}** ({fp.get('issue', '?')}): {fp.get('description', '')}"
+            for fp in failure_patterns[:5])
+    if dep_interfaces := memory_context.get("dependency_interfaces"):
         sections.append("\n## Dependency Interfaces (completed upstream issues)")
         for iface in dep_interfaces:
             sections.append(f"- **{iface.get('issue', '?')}**: {iface.get('summary', '')}")
-            exports = iface.get("exports", [])
-            if exports:
+            if exports := iface.get("exports", []):
                 sections.extend(f"  - `{e}`" for e in exports[:5])
-
-    bug_patterns = memory_context.get("bug_patterns")
-    if bug_patterns:
+    if bug_patterns := memory_context.get("bug_patterns"):
         sections.append("\n## Common Bug Patterns in This Build")
-        for bp in bug_patterns[:5]:
-            sections.append(f"- {bp.get('type', '?')} (seen {bp.get('frequency', 0)}x in {bp.get('modules', [])})")
-
-    # Failure notes from upstream issues
-    failure_notes = issue.get("failure_notes", [])
-    if failure_notes:
+        sections.extend(
+            f"- {bp.get('type', '?')} (seen {bp.get('frequency', 0)}x in {bp.get('modules', [])})"
+            for bp in bug_patterns[:5])
+    if failure_notes := issue.get("failure_notes", []):
         sections.append("\n## Upstream Failure Notes")
         sections.extend(f"- {note}" for note in failure_notes)
-
-    # Integration branch context
-    integration_branch = issue.get("integration_branch", "")
-    if integration_branch:
-        sections.append(f"\n## Git Context")
-        sections.append(f"- Integration branch: `{integration_branch}`")
-        sections.append(f"- Working in worktree: `{worktree_path}`")
-
-    sections.append(f"\n## Working Directory\n`{worktree_path}`")
-    sections.append(f"\n## Iteration: {iteration}")
-
+    if integration_branch := issue.get("integration_branch", ""):
+        sections.append(f"\n## Git Context\n- Integration branch: `{integration_branch}`\n- Working in worktree: `{worktree_path}`")
+    sections.extend([f"\n## Working Directory\n`{worktree_path}`", f"\n## Iteration: {iteration}"])
     if feedback:
-        sections.append("\n## Feedback from Previous Iteration")
-        sections.append(
-            "Address ALL of the following issues from the review:\n"
-        )
-        sections.append(feedback)
-        sections.append(
-            "\nFix the issues above, then re-commit. Focus on the specific "
-            "problems identified — do not rewrite code that is already correct."
-        )
+        sections.extend(["\n## Feedback from Previous Iteration\nAddress ALL of the following issues from the review:\n",
+            feedback,
+            "\nFix the issues above, then re-commit. Focus on the specific problems identified — do not rewrite code that is already correct."])
     else:
-        sections.append(
-            "\n## Your Task\n"
-            "1. Explore the codebase to understand patterns and context.\n"
-            "2. Implement the solution per the acceptance criteria.\n"
-            "3. Write or update tests per the Testing Strategy/guidance.\n"
-            "4. Run tests and report results (tests_passed, test_summary).\n"
-            "5. Commit your changes.\n"
-            "6. Report codebase_learnings and agent_retro in your output."
-        )
-
+        sections.append("\n## Your Task\n1. Explore the codebase to understand patterns and context.\n2. Implement the solution per the acceptance criteria.\n3. Write or update tests per the Testing Strategy/guidance.\n4. Run tests and report results (tests_passed, test_summary).\n5. Commit your changes.\n6. Report codebase_learnings and agent_retro in your output.")
     return "\n".join(sections)
