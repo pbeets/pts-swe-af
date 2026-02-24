@@ -588,25 +588,50 @@ async def plan(
         tags=["pipeline", "pm", "architect", "parallel", "duration_s", f"duration:{parallel_duration:.1f}"]
     )
 
-    # 3. Tech Lead review loop
-    review = None
+    # 3 & 4. Tech Lead review and Sprint Planner run in parallel
+    # Sprint Planner starts immediately after Architect without waiting for Tech Lead
+    app.note("Phase 3 & 4: Tech Lead + Sprint Planner (parallel)", tags=["pipeline", "tech_lead", "sprint_planner", "parallel"])
+    parallel_review_start = time.time()
+
+    # Start Sprint Planner immediately with initial architecture
+    sprint_planner_start = time.time()
+    sprint_planner_coro = app.call(
+        f"{NODE_ID}.run_sprint_planner",
+        prd=prd,
+        architecture=arch,
+        repo_path=repo_path,
+        artifacts_dir=artifacts_dir,
+        model=sprint_planner_model,
+        permission_mode=permission_mode,
+        ai_provider=ai_provider,
+    )
+
+    # Run Tech Lead review (first iteration) in parallel
     tech_lead_start = time.time()
-    for i in range(max_review_iterations + 1):
-        app.note(f"Phase 3: Tech Lead review (iteration {i})", tags=["pipeline", "tech_lead"])
-        review = _unwrap(await app.call(
-            f"{NODE_ID}.run_tech_lead",
-            prd=prd,
-            repo_path=repo_path,
-            artifacts_dir=artifacts_dir,
-            revision_number=i,
-            model=tech_lead_model,
-            permission_mode=permission_mode,
-            ai_provider=ai_provider,
-        ), "run_tech_lead")
-        if review["approved"]:
-            break
-        if i < max_review_iterations:
-            app.note(f"Architecture revision {i + 1}", tags=["pipeline", "revision"])
+    tech_lead_coro = app.call(
+        f"{NODE_ID}.run_tech_lead",
+        prd=prd,
+        repo_path=repo_path,
+        artifacts_dir=artifacts_dir,
+        revision_number=0,
+        model=tech_lead_model,
+        permission_mode=permission_mode,
+        ai_provider=ai_provider,
+    )
+
+    # Execute both concurrently
+    sprint_result, review = await asyncio.gather(sprint_planner_coro, tech_lead_coro)
+    sprint_result = _unwrap(sprint_result, "run_sprint_planner")
+    review = _unwrap(review, "run_tech_lead")
+
+    sprint_planner_duration = time.time() - sprint_planner_start
+    app.note(f"Sprint Planner (parallel): {sprint_planner_duration:.1f}s", tags=["pipeline", "sprint_planner", "parallel", "duration_s", f"duration:{sprint_planner_duration:.1f}"])
+
+    # If Tech Lead requires changes, update architecture and re-run Sprint Planner
+    if not review["approved"]:
+        app.note("Tech Lead requested changes - re-running Sprint Planner with updated architecture", tags=["pipeline", "revision"])
+        for i in range(1, max_review_iterations + 1):
+            app.note(f"Architecture revision {i}", tags=["pipeline", "revision"])
             arch = _unwrap(await app.call(
                 f"{NODE_ID}.run_architect",
                 prd=prd,
@@ -618,34 +643,55 @@ async def plan(
                 ai_provider=ai_provider,
             ), "run_architect (revision)")
 
-    # Force-approve if we exhausted iterations
-    assert review is not None
-    if not review["approved"]:
-        review = ReviewResult(
-            approved=True,
-            feedback=review["feedback"],
-            scope_issues=review.get("scope_issues", []),
-            complexity_assessment=review.get("complexity_assessment", "appropriate"),
-            summary=review["summary"] + " [auto-approved after max iterations]",
-        ).model_dump()
+            review = _unwrap(await app.call(
+                f"{NODE_ID}.run_tech_lead",
+                prd=prd,
+                repo_path=repo_path,
+                artifacts_dir=artifacts_dir,
+                revision_number=i,
+                model=tech_lead_model,
+                permission_mode=permission_mode,
+                ai_provider=ai_provider,
+            ), "run_tech_lead")
+
+            if review["approved"]:
+                break
+
+        # Force-approve if we exhausted iterations
+        if not review["approved"]:
+            review = ReviewResult(
+                approved=True,
+                feedback=review["feedback"],
+                scope_issues=review.get("scope_issues", []),
+                complexity_assessment=review.get("complexity_assessment", "appropriate"),
+                summary=review["summary"] + " [auto-approved after max iterations]",
+            ).model_dump()
+
+        # Re-run Sprint Planner with final approved architecture
+        app.note("Re-running Sprint Planner with updated architecture", tags=["pipeline", "sprint_planner", "revision"])
+        sprint_planner_start = time.time()
+        sprint_result = _unwrap(await app.call(
+            f"{NODE_ID}.run_sprint_planner",
+            prd=prd,
+            architecture=arch,
+            repo_path=repo_path,
+            artifacts_dir=artifacts_dir,
+            model=sprint_planner_model,
+            permission_mode=permission_mode,
+            ai_provider=ai_provider,
+        ), "run_sprint_planner")
+        sprint_planner_duration = time.time() - sprint_planner_start
+        app.note(f"Sprint Planner (revision): {sprint_planner_duration:.1f}s", tags=["pipeline", "sprint_planner", "revision", "duration_s", f"duration:{sprint_planner_duration:.1f}"])
+
     tech_lead_duration = time.time() - tech_lead_start
     app.note(f"Tech Lead: {tech_lead_duration:.1f}s", tags=["pipeline", "tech_lead", "duration_s", f"duration:{tech_lead_duration:.1f}"])
 
-    # 4. Sprint planner decomposes into issues
-    app.note("Phase 4: Sprint Planner", tags=["pipeline", "sprint_planner"])
-    sprint_planner_start = time.time()
-    sprint_result = _unwrap(await app.call(
-        f"{NODE_ID}.run_sprint_planner",
-        prd=prd,
-        architecture=arch,
-        repo_path=repo_path,
-        artifacts_dir=artifacts_dir,
-        model=sprint_planner_model,
-        permission_mode=permission_mode,
-        ai_provider=ai_provider,
-    ), "run_sprint_planner")
-    sprint_planner_duration = time.time() - sprint_planner_start
-    app.note(f"Sprint Planner: {sprint_planner_duration:.1f}s", tags=["pipeline", "sprint_planner", "duration_s", f"duration:{sprint_planner_duration:.1f}"])
+    parallel_review_duration = time.time() - parallel_review_start
+    app.note(
+        f"Tech Lead + Sprint Planner (parallel): {parallel_review_duration:.1f}s",
+        tags=["pipeline", "tech_lead", "sprint_planner", "parallel", "duration_s", f"duration:{parallel_review_duration:.1f}"]
+    )
+
     issues = sprint_result["issues"]
     rationale = sprint_result["rationale"]
 

@@ -373,8 +373,8 @@ class TestSequentialPhases:
             assert tech_lead_idx > arch_end_idx, "Tech Lead should run after Architect completes"
 
     @pytest.mark.asyncio
-    async def test_sprint_planner_runs_after_tech_lead_approval(self):
-        """Verify Sprint Planner runs after Tech Lead approval."""
+    async def test_sprint_planner_runs_parallel_with_tech_lead(self):
+        """Verify Sprint Planner runs in parallel with Tech Lead (non-blocking)."""
         sys.path.insert(0, str(Path(__file__).parent.parent))
         from swe_af import app as app_module
 
@@ -383,7 +383,9 @@ class TestSequentialPhases:
 
             async def mock_call(endpoint: str, **kwargs):
                 if "run_product_manager" in endpoint:
-                    execution_order.append("pm")
+                    execution_order.append("pm_start")
+                    await asyncio.sleep(0.1)
+                    execution_order.append("pm_end")
                     return {
                         "validated_description": "Test",
                         "acceptance_criteria": [],
@@ -392,7 +394,9 @@ class TestSequentialPhases:
                         "out_of_scope": [],
                     }
                 elif "run_architect" in endpoint:
-                    execution_order.append("architect")
+                    execution_order.append("architect_start")
+                    await asyncio.sleep(0.1)
+                    execution_order.append("architect_end")
                     return {
                         "components": [],
                         "dependencies": [],
@@ -402,29 +406,43 @@ class TestSequentialPhases:
                         "file_changes_overview": "Test file changes",
                     }
                 elif "run_tech_lead" in endpoint:
-                    execution_order.append("tech_lead")
+                    execution_order.append("tech_lead_start")
+                    await asyncio.sleep(0.1)
+                    execution_order.append("tech_lead_end")
                     return {"approved": True, "feedback": "", "summary": "OK"}
                 elif "run_sprint_planner" in endpoint:
-                    execution_order.append("sprint_planner")
+                    execution_order.append("sprint_planner_start")
+                    await asyncio.sleep(0.1)
+                    execution_order.append("sprint_planner_end")
                     return {"issues": [], "rationale": "Test rationale"}
                 return {}
 
             with patch.object(app_module.app, "call", side_effect=mock_call):
                 with patch.object(app_module.app, "note"):
                     await app_module.plan(
-                        goal="Test sprint planner sequencing",
+                        goal="Test sprint planner parallelization",
                         repo_path=tmpdir,
                         artifacts_dir=".artifacts",
                     )
 
-            # Verify Sprint Planner runs after Tech Lead
-            assert "tech_lead" in execution_order
-            assert "sprint_planner" in execution_order
+            # Verify Sprint Planner and Tech Lead both ran
+            assert "tech_lead_start" in execution_order
+            assert "sprint_planner_start" in execution_order
 
-            tech_lead_idx = execution_order.index("tech_lead")
-            sprint_planner_idx = execution_order.index("sprint_planner")
+            # Verify they ran in parallel: both should start before either completes
+            tech_lead_start_idx = execution_order.index("tech_lead_start")
+            tech_lead_end_idx = execution_order.index("tech_lead_end")
+            sprint_planner_start_idx = execution_order.index("sprint_planner_start")
+            sprint_planner_end_idx = execution_order.index("sprint_planner_end")
 
-            assert sprint_planner_idx > tech_lead_idx, "Sprint Planner should run after Tech Lead"
+            # In parallel execution, both should start before either completes
+            # Check that Sprint Planner starts before Tech Lead completes (parallel overlap)
+            assert sprint_planner_start_idx < tech_lead_end_idx, "Sprint Planner should start before Tech Lead completes (parallel)"
+            # Check that Tech Lead starts before Sprint Planner completes (parallel overlap)
+            assert tech_lead_start_idx < sprint_planner_end_idx, "Tech Lead should start before Sprint Planner completes (parallel)"
+
+            # Both should start at approximately the same time (within 2 positions in execution order)
+            assert abs(tech_lead_start_idx - sprint_planner_start_idx) <= 2, f"Start times should be close: indices {tech_lead_start_idx} vs {sprint_planner_start_idx}"
 
 
 class TestEdgeCases:
