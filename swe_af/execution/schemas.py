@@ -647,7 +647,7 @@ class ExecutionConfig(BaseModel):
     replan_timeout: int = 1500
     verifier_timeout: int = 1500
     git_timeout: int = 600              # 10 min
-    merger_timeout: int = 1200
+    merger_timeout: int = 900           # 15 min
     integration_tester_timeout: int = 1500
     retry_advisor_timeout: int = 1200
 
