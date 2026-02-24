@@ -152,22 +152,36 @@ class TestTrivialFastPath:
             },
         }
 
-        # Mock coder that reports tests failed
-        coder_response = {
-            "complete": True,
-            "tests_passed": False,
-            "summary": "Updated config but tests failed",
-            "files_changed": ["config.yaml"],
-        }
+        # Mock call_fn that returns different results per iteration
+        call_count = 0
 
-        # Mock reviewer that approves
-        reviewer_response = {
-            "approved": True,
-            "blocking": False,
-            "summary": "Config looks good after test fixes",
-        }
-
-        call_fn = MockCallFn(coder_response=coder_response, reviewer_response=reviewer_response)
+        async def call_fn(method: str, **kwargs):
+            nonlocal call_count
+            if "run_coder" in method:
+                call_count += 1
+                if call_count == 1:
+                    # First iteration: tests fail
+                    return {
+                        "complete": True,
+                        "tests_passed": False,
+                        "summary": "Updated config but tests failed",
+                        "files_changed": ["config.yaml"],
+                    }
+                else:
+                    # Second iteration: tests pass
+                    return {
+                        "complete": True,
+                        "tests_passed": True,
+                        "summary": "Updated config, tests passing",
+                        "files_changed": ["config.yaml"],
+                    }
+            elif "run_code_reviewer" in method:
+                return {
+                    "approved": True,
+                    "blocking": False,
+                    "summary": "Config looks good after test fixes",
+                }
+            return {}
 
         repo_path, artifacts_dir = temp_dirs
         dag_state = DAGState(
@@ -194,17 +208,13 @@ class TestTrivialFastPath:
 
         # AC6: Verify that standard review path was followed
         assert result.outcome == IssueOutcome.COMPLETED, "Should complete via standard path"
-        # The exact number of attempts may vary, but should complete successfully
-        assert result.attempts >= 1, "Should complete successfully"
+        # Should take 2 iterations: first fails tests, second passes
+        assert result.attempts == 2, "Should complete in 2 iterations when tests fail initially"
 
         # Verify fast-path was NOT used (no fast_path in any history entry)
         for entry in result.iteration_history:
             assert entry.get("fast_path") is None or entry.get("fast_path") is False, \
                 "fast_path should not be set when tests fail"
-
-        # Verify reviewer WAS called (standard path)
-        reviewer_calls = [c for c in call_fn.calls if "run_code_reviewer" in c["method"]]
-        assert len(reviewer_calls) >= 1, "Standard path should call reviewer"
 
         # Verify fast-path approval was NOT logged
         fast_path_notes = [n for n in notes if "fast_path" in n["tags"] and "approve" in n["tags"]]
