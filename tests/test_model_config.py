@@ -16,11 +16,12 @@ from swe_af.execution.schemas import (
 class TestResolveRuntimeModels(unittest.TestCase):
     def test_claude_code_defaults(self) -> None:
         resolved = resolve_runtime_models(runtime="claude_code", models=None)
+        haiku_fields = {"qa_synthesizer_model", "retry_advisor_model", "git_model", "merger_model"}
         for field in ALL_MODEL_FIELDS:
-            if field == "qa_synthesizer_model":
-                continue
-            self.assertEqual(resolved[field], "sonnet")
-        self.assertEqual(resolved["qa_synthesizer_model"], "haiku")
+            if field in haiku_fields:
+                self.assertEqual(resolved[field], "haiku")
+            else:
+                self.assertEqual(resolved[field], "sonnet")
 
     def test_open_code_defaults(self) -> None:
         resolved = resolve_runtime_models(runtime="open_code", models=None)
