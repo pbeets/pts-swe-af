@@ -699,6 +699,12 @@ async def run_coding_loop(
 
         # --- 4. BRANCH ON ACTION ---
         if action == "approve":
+            if iteration == 1:
+                if note_fn:
+                    note_fn(
+                        f"FAST-PATH EXIT: {issue_name} approved on first iteration",
+                        tags=["coding_loop", "fast_path", "complete", issue_name],
+                    )
             if note_fn:
                 note_fn(
                     f"Coding loop APPROVED: {issue_name} after {iteration} iteration(s)",
