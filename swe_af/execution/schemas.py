@@ -7,8 +7,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, PrivateAttr, model_validator
 
-# Global default for all agent max_turns. Change this one value to adjust everywhere.
-DEFAULT_AGENT_MAX_TURNS: int = 150
+# Per-role turn limits are now defined in ExecutionConfig and BuildConfig.
+# Global default is 150 (hardcoded in field defaults below).
 
 
 class AdvisorAction(str, Enum):
@@ -510,7 +510,7 @@ class BuildConfig(BaseModel):
     max_integration_test_retries: int = 1
     enable_integration_testing: bool = True
     max_coding_iterations: int = 6
-    agent_max_turns: int = DEFAULT_AGENT_MAX_TURNS
+    agent_max_turns: int = 150
     execute_fn_target: str = ""
     permission_mode: str = ""
     repo_url: str = ""                # GitHub URL to clone
@@ -606,7 +606,7 @@ class ExecutionConfig(BaseModel):
     max_integration_test_retries: int = 1
     enable_integration_testing: bool = True
     max_coding_iterations: int = 6
-    agent_max_turns: int = DEFAULT_AGENT_MAX_TURNS
+    agent_max_turns: int = 150
     agent_timeout_seconds: int = 2700       # 45 min
     max_advisor_invocations: int = 2
     enable_issue_advisor: bool = True

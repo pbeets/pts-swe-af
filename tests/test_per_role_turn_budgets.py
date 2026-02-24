@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from swe_af.execution.schemas import DEFAULT_AGENT_MAX_TURNS, ExecutionConfig
+from swe_af.execution.schemas import ExecutionConfig
 
 
 class TestPerRoleTurnBudgets:
@@ -48,14 +48,14 @@ class TestPerRoleTurnBudgets:
     def test_unknown_role_returns_fallback(self):
         """Verify unknown role returns agent_max_turns fallback."""
         config = ExecutionConfig()
-        assert config.max_turns_for_role("unknown_role") == DEFAULT_AGENT_MAX_TURNS
+        assert config.max_turns_for_role("unknown_role") == 150
         assert config.max_turns_for_role("nonexistent") == 150
 
     def test_role_with_typo_returns_fallback(self):
         """Verify role with typo returns fallback."""
         config = ExecutionConfig()
-        assert config.max_turns_for_role("codder") == DEFAULT_AGENT_MAX_TURNS  # typo
-        assert config.max_turns_for_role("PM") == DEFAULT_AGENT_MAX_TURNS  # wrong case
+        assert config.max_turns_for_role("codder") == 150  # typo
+        assert config.max_turns_for_role("PM") == 150  # wrong case
 
     def test_backward_compatibility_with_agent_max_turns(self):
         """Verify backward compatibility: unknown roles use agent_max_turns override."""
@@ -134,13 +134,13 @@ class TestExecutionConfigDefaults:
     def test_default_instantiation(self):
         """Verify ExecutionConfig can be instantiated with defaults."""
         config = ExecutionConfig()
-        assert config.agent_max_turns == DEFAULT_AGENT_MAX_TURNS
+        assert config.agent_max_turns == 150
         assert config.agent_timeout_seconds == 2700
         assert config.coder_turns == 100
         assert config.coder_timeout == 1800
 
     def test_defaults_preserved_as_fallbacks(self):
-        """Verify DEFAULT_AGENT_MAX_TURNS and agent_timeout_seconds are preserved."""
+        """Verify agent_max_turns and agent_timeout_seconds defaults are preserved."""
         config = ExecutionConfig()
         assert config.agent_max_turns == 150
         assert config.agent_timeout_seconds == 2700
@@ -152,7 +152,7 @@ class TestEdgeCases:
     def test_empty_role_string_returns_fallback(self):
         """Verify empty string role returns fallback."""
         config = ExecutionConfig()
-        assert config.max_turns_for_role("") == DEFAULT_AGENT_MAX_TURNS
+        assert config.max_turns_for_role("") == 150
         assert config.timeout_for_role("") == 2700
 
     def test_all_16_turn_fields_exist(self):

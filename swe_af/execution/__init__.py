@@ -2,7 +2,6 @@
 
 from swe_af.execution.schemas import (
     ALL_MODEL_FIELDS,
-    DEFAULT_AGENT_MAX_TURNS,
     MODEL_ROLE_KEYS,
     ROLE_TO_MODEL_FIELD,
     RUNTIME_VALUES,
@@ -32,7 +31,6 @@ from swe_af.execution.schemas import (
 
 __all__ = [
     "ALL_MODEL_FIELDS",
-    "DEFAULT_AGENT_MAX_TURNS",
     "MODEL_ROLE_KEYS",
     "ROLE_TO_MODEL_FIELD",
     "RUNTIME_VALUES",
