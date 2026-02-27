@@ -602,6 +602,7 @@ class BuildConfig(BaseModel):
     models: dict[str, str] | None = None
 
     max_review_iterations: int = 2
+    max_plan_revision_iterations: int = 2
     max_retries_per_issue: int = 2
     max_replans: int = 2
     enable_replanning: bool = True
@@ -625,9 +626,9 @@ class BuildConfig(BaseModel):
     max_concurrent_issues: int = 3          # max parallel issues per level (0 = unlimited)
     level_failure_abort_threshold: float = 0.8  # abort DAG when >= this fraction of a level fails
 
-    # Approval workflow — when enabled, pauses after planning for human review
-    enable_plan_approval: bool = False
-    approval_project_id: str = ""           # hax-sdk project UUID for approval requests
+    # Approval workflow — automatically enabled when the control plane has a
+    # hax-sdk API key configured.  No explicit flag needed; SWE-AF always
+    # attempts approval and gracefully skips when the CP returns "not configured".
     approval_expires_in_hours: int = 72     # how long before approval request expires
 
     @model_validator(mode="before")

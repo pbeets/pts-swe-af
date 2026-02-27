@@ -13,6 +13,10 @@ import os
 import subprocess
 import uuid
 
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env file so HAX_API_KEY (and other vars) are available
+
 from swe_af.reasoners import router
 from swe_af.reasoners.pipeline import _assign_sequence_numbers, _compute_levels, _validate_file_conflicts
 from swe_af.reasoners.schemas import PlanResult, ReviewResult
@@ -168,6 +172,61 @@ async def _clone_repos(
         repos=repos,
         primary_repo_name=primary_repo_name,
     )
+
+
+def _format_plan_for_approval(
+    plan_result: dict,
+) -> tuple[str, str, str, list[dict]]:
+    """Format plan_result into template-ready fields.
+
+    Returns (plan_summary, prd_markdown, architecture_markdown, issues_for_template).
+    """
+    plan_summary = plan_result.get("rationale", "")
+    prd_data = plan_result.get("prd", {})
+    arch_data = plan_result.get("architecture", {})
+
+    # Format PRD as markdown
+    prd_md_parts: list[str] = []
+    if prd_data.get("validated_description"):
+        prd_md_parts.append(f"## Description\n{prd_data['validated_description']}")
+    if prd_data.get("must_have"):
+        prd_md_parts.append("## Must Have\n" + "\n".join(f"- {item}" for item in prd_data["must_have"]))
+    if prd_data.get("nice_to_have"):
+        prd_md_parts.append("## Nice to Have\n" + "\n".join(f"- {item}" for item in prd_data["nice_to_have"]))
+    if prd_data.get("acceptance_criteria"):
+        prd_md_parts.append("## Acceptance Criteria\n" + "\n".join(f"- {item}" for item in prd_data["acceptance_criteria"]))
+    prd_markdown = "\n\n".join(prd_md_parts) if prd_md_parts else ""
+
+    # Format architecture as markdown
+    arch_md_parts: list[str] = []
+    if arch_data.get("summary"):
+        arch_md_parts.append(f"## Summary\n{arch_data['summary']}")
+    if arch_data.get("components"):
+        arch_md_parts.append("## Components")
+        for comp in arch_data["components"]:
+            arch_md_parts.append(f"### {comp.get('name', 'Component')}\n{comp.get('responsibility', '')}")
+            if comp.get("touches_files"):
+                arch_md_parts.append("Files: " + ", ".join(f"`{f}`" for f in comp["touches_files"]))
+    if arch_data.get("decisions"):
+        arch_md_parts.append("## Key Decisions")
+        for dec in arch_data["decisions"]:
+            arch_md_parts.append(f"- **{dec.get('decision', '')}**: {dec.get('rationale', '')}")
+    architecture_markdown = "\n\n".join(arch_md_parts) if arch_md_parts else ""
+
+    # Format issues for the template
+    issues_for_template = []
+    for issue in plan_result.get("issues", []):
+        issues_for_template.append({
+            "name": issue.get("name", ""),
+            "title": issue.get("title", ""),
+            "description": issue.get("description", ""),
+            "dependsOn": issue.get("depends_on", []),
+            "filesToModify": issue.get("files_to_modify", []),
+            "filesToCreate": issue.get("files_to_create", []),
+            "acceptanceCriteria": issue.get("acceptance_criteria", []),
+        })
+
+    return plan_summary, prd_markdown, architecture_markdown, issues_for_template
 
 
 @app.reasoner()
@@ -420,78 +479,47 @@ async def build(
             tags=["build", "git_init", "error"],
         )
 
-    # 1.5 APPROVAL CHECKPOINT — pause for human plan review if enabled
-    if cfg.enable_plan_approval and cfg.approval_project_id:
-        execution_id = app.ctx.execution_id if app.ctx else ""
-        if not execution_id:
+    # 1.5 APPROVAL CHECKPOINT — pause for human plan review if configured
+    #     Automatically enabled when HAX_API_KEY is set in the environment.
+    #     SWE-AF calls hax-sdk directly; the CP only manages execution state.
+    #     Supports iterative revision: reviewer can "request changes" and the agent
+    #     will re-plan (Architect → TechLead → SprintPlanner) with the feedback.
+    from swe_af.approval import is_approval_enabled
+    execution_id = app.ctx.execution_id if app.ctx else ""
+    _approval_enabled = is_approval_enabled()
+    app.note(
+        f"Approval check: HAX_API_KEY={'set' if _approval_enabled else 'NOT SET'}, "
+        f"execution_id={'present' if execution_id else 'MISSING'}",
+        tags=["build", "approval", "check"],
+    )
+    if _approval_enabled and execution_id:
+        import json as _json
+
+        approval_client = ApprovalClient(app)
+        approval_state_path = os.path.join(abs_artifacts_dir, "approval_state.json")
+        os.makedirs(os.path.dirname(approval_state_path), exist_ok=True)
+        revision_history: list[dict] = []
+
+        for revision_iter in range(cfg.max_plan_revision_iterations + 1):
             app.note(
-                "Approval enabled but no execution context available — skipping",
-                tags=["build", "approval", "skipped"],
+                f"Phase 1.5: Requesting plan approval (iteration {revision_iter})",
+                tags=["build", "approval"],
             )
-        else:
-            app.note("Phase 1.5: Requesting plan approval", tags=["build", "approval"])
 
-            # Build markdown summary from plan_result for the template
-            plan_summary = plan_result.get("rationale", "")
-            prd_data = plan_result.get("prd", {})
-            arch_data = plan_result.get("architecture", {})
-
-            # Format PRD as markdown
-            prd_md_parts = []
-            if prd_data.get("validated_description"):
-                prd_md_parts.append(f"## Description\n{prd_data['validated_description']}")
-            if prd_data.get("must_have"):
-                prd_md_parts.append("## Must Have\n" + "\n".join(f"- {item}" for item in prd_data["must_have"]))
-            if prd_data.get("nice_to_have"):
-                prd_md_parts.append("## Nice to Have\n" + "\n".join(f"- {item}" for item in prd_data["nice_to_have"]))
-            if prd_data.get("acceptance_criteria"):
-                prd_md_parts.append("## Acceptance Criteria\n" + "\n".join(f"- {item}" for item in prd_data["acceptance_criteria"]))
-            prd_markdown = "\n\n".join(prd_md_parts) if prd_md_parts else ""
-
-            # Format architecture as markdown
-            arch_md_parts = []
-            if arch_data.get("summary"):
-                arch_md_parts.append(f"## Summary\n{arch_data['summary']}")
-            if arch_data.get("components"):
-                arch_md_parts.append("## Components")
-                for comp in arch_data["components"]:
-                    arch_md_parts.append(f"### {comp.get('name', 'Component')}\n{comp.get('responsibility', '')}")
-                    if comp.get("touches_files"):
-                        arch_md_parts.append("Files: " + ", ".join(f"`{f}`" for f in comp["touches_files"]))
-            if arch_data.get("decisions"):
-                arch_md_parts.append("## Key Decisions")
-                for dec in arch_data["decisions"]:
-                    arch_md_parts.append(f"- **{dec.get('decision', '')}**: {dec.get('rationale', '')}")
-            architecture_markdown = "\n\n".join(arch_md_parts) if arch_md_parts else ""
-
-            # Format issues for the template
-            issues_for_template = []
-            for issue in plan_result.get("issues", []):
-                issues_for_template.append({
-                    "name": issue.get("name", ""),
-                    "title": issue.get("title", ""),
-                    "description": issue.get("description", ""),
-                    "dependsOn": issue.get("depends_on", []),
-                    "filesToModify": issue.get("files_to_modify", []),
-                    "filesToCreate": issue.get("files_to_create", []),
-                    "acceptanceCriteria": issue.get("acceptance_criteria", []),
-                })
-
-            import json as _json
-            approval_state_path = os.path.join(abs_artifacts_dir, "approval_state.json")
-            os.makedirs(os.path.dirname(approval_state_path), exist_ok=True)
+            plan_summary, prd_markdown, architecture_markdown, issues_for_template = (
+                _format_plan_for_approval(plan_result)
+            )
 
             def _save_pending_state(req_id: str, req_url: str) -> None:
-                """Persist pending state before polling so resume_build can recover."""
                 with open(approval_state_path, "w") as _fp:
                     _json.dump({
                         "decision": "pending",
                         "feedback": "",
                         "request_id": req_id,
                         "request_url": req_url,
+                        "revision_number": revision_iter,
                     }, _fp, indent=2)
 
-            approval_client = ApprovalClient(app, cfg.approval_project_id)
             approval_result = await approval_client.request_plan_approval(
                 execution_id=execution_id,
                 plan_summary=plan_summary,
@@ -502,34 +530,144 @@ async def build(
                 repo_url=cfg.repo_url,
                 expires_in_hours=cfg.approval_expires_in_hours,
                 on_request_created=_save_pending_state,
+                revision_number=revision_iter,
+                revision_history=revision_history,
             )
 
-            # Update with final decision
+            # Persist decision
             with open(approval_state_path, "w") as _f:
                 _json.dump({
                     "decision": approval_result.decision,
                     "feedback": approval_result.feedback,
                     "request_id": approval_result.request_id,
                     "request_url": approval_result.request_url,
+                    "revision_number": revision_iter,
+                    "revision_history": revision_history,
                 }, _f, indent=2)
 
-            if not approval_result.approved:
-                reason = approval_result.feedback or approval_result.decision
+            if approval_result.approved:
                 app.note(
-                    f"Plan {approval_result.decision} by human reviewer: {reason}",
-                    tags=["build", "approval", approval_result.decision],
+                    "Plan approved — proceeding to execution",
+                    tags=["build", "approval", "approved"],
                 )
-                return BuildResult(
-                    plan_result=plan_result,
-                    dag_state={},
-                    success=False,
-                    summary=f"Plan {approval_result.decision}: {reason}",
-                ).model_dump()
+                break
 
+            if approval_result.changes_requested:
+                # Check if we've exhausted revision attempts
+                if revision_iter >= cfg.max_plan_revision_iterations:
+                    app.note(
+                        f"Max plan revision iterations ({cfg.max_plan_revision_iterations}) reached",
+                        tags=["build", "approval", "exhausted"],
+                    )
+                    return BuildResult(
+                        plan_result=plan_result,
+                        dag_state={},
+                        success=False,
+                        summary=f"Plan revision limit reached after {revision_iter + 1} iterations",
+                    ).model_dump()
+
+                revision_history.append({
+                    "iteration": revision_iter,
+                    "feedback": approval_result.feedback,
+                })
+
+                app.note(
+                    f"Changes requested (iteration {revision_iter}): "
+                    f"{approval_result.feedback[:200]}",
+                    tags=["build", "approval", "request_changes"],
+                )
+
+                # Re-plan: Architect → Tech Lead review loop → Sprint Planner
+                # (skip PM — the PRD/scope doesn't change from reviewer feedback)
+                app.note(
+                    f"Re-planning with human feedback (revision {revision_iter + 1})",
+                    tags=["build", "replan"],
+                )
+
+                arch = _unwrap(await app.call(
+                    f"{NODE_ID}.run_architect",
+                    prd=plan_result.get("prd", {}),
+                    repo_path=repo_path,
+                    artifacts_dir=artifacts_dir,
+                    feedback=approval_result.feedback,
+                    model=resolved["architect_model"],
+                    permission_mode=cfg.permission_mode,
+                    ai_provider=cfg.ai_provider,
+                    workspace_manifest=manifest.model_dump() if manifest else None,
+                ), "run_architect (human revision)")
+
+                review = None
+                for tl_iter in range(cfg.max_review_iterations + 1):
+                    review = _unwrap(await app.call(
+                        f"{NODE_ID}.run_tech_lead",
+                        prd=plan_result.get("prd", {}),
+                        repo_path=repo_path,
+                        artifacts_dir=artifacts_dir,
+                        revision_number=tl_iter,
+                        model=resolved["tech_lead_model"],
+                        permission_mode=cfg.permission_mode,
+                        ai_provider=cfg.ai_provider,
+                        workspace_manifest=manifest.model_dump() if manifest else None,
+                    ), "run_tech_lead")
+                    if review["approved"]:
+                        break
+                    if tl_iter < cfg.max_review_iterations:
+                        arch = _unwrap(await app.call(
+                            f"{NODE_ID}.run_architect",
+                            prd=plan_result.get("prd", {}),
+                            repo_path=repo_path,
+                            artifacts_dir=artifacts_dir,
+                            feedback=review["feedback"],
+                            model=resolved["architect_model"],
+                            permission_mode=cfg.permission_mode,
+                            ai_provider=cfg.ai_provider,
+                            workspace_manifest=manifest.model_dump() if manifest else None,
+                        ), "run_architect (tech lead revision)")
+
+                # Force-approve if tech lead iterations exhausted
+                if review and not review["approved"]:
+                    review = ReviewResult(
+                        approved=True,
+                        feedback=review["feedback"],
+                        scope_issues=review.get("scope_issues", []),
+                        complexity_assessment=review.get("complexity_assessment", "appropriate"),
+                        summary=review["summary"] + " [auto-approved after max iterations]",
+                    ).model_dump()
+
+                sprint_result = _unwrap(await app.call(
+                    f"{NODE_ID}.run_sprint_planner",
+                    prd=plan_result.get("prd", {}),
+                    architecture=arch,
+                    repo_path=repo_path,
+                    artifacts_dir=artifacts_dir,
+                    model=resolved["sprint_planner_model"],
+                    permission_mode=cfg.permission_mode,
+                    ai_provider=cfg.ai_provider,
+                    workspace_manifest=manifest.model_dump() if manifest else None,
+                ), "run_sprint_planner (revision)")
+
+                # Update plan_result with revised architecture + issues
+                plan_result = {
+                    **plan_result,
+                    "architecture": arch,
+                    "review": review,
+                    "issues": sprint_result["issues"],
+                    "rationale": sprint_result["rationale"],
+                }
+                continue
+
+            # Terminal rejection or expired/error
+            reason = approval_result.feedback or approval_result.decision
             app.note(
-                "Plan approved — proceeding to execution",
-                tags=["build", "approval", "approved"],
+                f"Plan {approval_result.decision} by human reviewer: {reason}",
+                tags=["build", "approval", approval_result.decision],
             )
+            return BuildResult(
+                plan_result=plan_result,
+                dag_state={},
+                success=False,
+                summary=f"Plan {approval_result.decision}: {reason}",
+            ).model_dump()
 
     # 2. EXECUTE
     exec_config = cfg.to_execution_config_dict()
@@ -1210,11 +1348,10 @@ async def resume_build(
                 "Resuming approval polling from previous run",
                 tags=["build", "resume", "approval", "polling"],
             )
-            cfg = BuildConfig(**config) if config else BuildConfig()
-            if cfg.approval_project_id:
-                execution_id = app.ctx.execution_id if app.ctx else ""
-                approval_client = ApprovalClient(app, cfg.approval_project_id)
-                result = await approval_client._poll_approval(
+            execution_id = app.ctx.execution_id if app.ctx else ""
+            if execution_id:
+                approval_client = ApprovalClient(app)
+                result = await approval_client.wait_for_approval(
                     execution_id=execution_id,
                     request_id=approval_state["request_id"],
                     request_url=approval_state.get("request_url", ""),
