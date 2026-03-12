@@ -1,3 +1,10 @@
+# SWE-AF Docker Compose
+#
+# Usage:
+#   cd code/examples/af-swe
+#   docker compose up --build
+#   docker compose down -v
+
 services:
   control-plane:
     image: agentfield/control-plane:latest
@@ -19,39 +26,19 @@ services:
       - NODE_ID=swe-planner
       - PORT=8003
       - AGENT_CALLBACK_URL=http://swe-agent:8003
+      # Runtime: MiniMax via OpenRouter through opencode
+      - SWE_AF_HARNESS_PROVIDER=opencode
+      - SWE_AF_HARNESS_MODEL=minimax/minimax-m2.5
+      - SWE_AF_AI_MODEL=minimax/minimax-m2.5
     ports:
       - "8003:8003"
     volumes:
       - workspaces:/workspaces
-    depends_on:
-      - control-plane
-    deploy:
-      replicas: 1  # Scale with: docker compose up --scale swe-agent=3
-
-  swe-fast:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["python", "-m", "swe_af.fast"]
-    environment:
-      - AGENTFIELD_SERVER=http://control-plane:8080
-      - NODE_ID=swe-fast
-      - PORT=8004
-      - AGENT_CALLBACK_URL=http://swe-fast:8004
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN}
-      - GH_TOKEN=${GH_TOKEN}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
-      - OPENCODE_MODEL=${OPENCODE_MODEL:-}
-    ports:
-      - "8004:8004"
-    volumes:
-      - workspaces:/workspaces
+      - artifacts:/data/artifacts
     depends_on:
       - control-plane
 
 volumes:
   agentfield-data:
   workspaces:
+  artifacts:
