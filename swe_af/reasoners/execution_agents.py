@@ -930,10 +930,6 @@ async def run_coder(
     """
     project_context = project_context or {}
     issue_name = issue.get("name", "?")
-    _artifacts_dir = project_context.get("artifacts_dir", "")
-    log_dir = os.path.join(_artifacts_dir, "logs") if _artifacts_dir else None
-    log_path = os.path.join(log_dir, f"coder_{issue_name}_iter_{iteration}.jsonl") if log_dir else None
-
     router.note(
         f"Coder starting: {issue_name} (iteration {iteration})",
         tags=["coder", "start"],
@@ -952,35 +948,30 @@ async def run_coder(
         target_repo=target_repo,
     )
 
-    ai = AgentAI(AgentAIConfig(
-        model=model,
-        provider=ai_provider,
-        cwd=worktree_path,
-        max_turns=DEFAULT_AGENT_MAX_TURNS,
-        allowed_tools=[
-            Tool.READ, Tool.WRITE, Tool.EDIT,
-            Tool.BASH, Tool.GLOB, Tool.GREP,
-        ],
-        permission_mode=permission_mode or None,
-    ))
+    provider = "claude-code" if ai_provider == "claude" else ai_provider
 
     try:
-        response = await ai.run(
+        result = await router.harness(
             task_prompt,
             system_prompt=CODER_SYSTEM_PROMPT,
+            model=model,
+            provider=provider,
+            tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
             output_schema=CoderResult,
-            log_file=log_path,
+            cwd=worktree_path,
+            max_turns=DEFAULT_AGENT_MAX_TURNS,
+            permission_mode=permission_mode or None,
         )
-        if response.parsed is not None:
+        out = result.model_dump()
+        if out is not None:
             router.note(
                 f"Coder complete: {issue_name}, "
-                f"files={len(response.parsed.files_changed)}, "
-                f"complete={response.parsed.complete}",
+                f"files={len(result.files_changed)}, "
+                f"complete={result.complete}",
                 tags=["coder", "complete"],
             )
-            result = response.parsed.model_dump()
-            result["iteration_id"] = iteration_id
-            return result
+            out["iteration_id"] = iteration_id
+            return out
     except Exception as e:
         router.note(
             f"Coder agent failed: {issue_name}: {e}",
@@ -1014,10 +1005,6 @@ async def run_qa(
     """
     project_context = project_context or {}
     issue_name = issue.get("name", "?")
-    _artifacts_dir = project_context.get("artifacts_dir", "")
-    log_dir = os.path.join(_artifacts_dir, "logs") if _artifacts_dir else None
-    log_path = os.path.join(log_dir, f"qa_{issue_name}_iter_{iteration_id}.jsonl") if log_dir else None
-
     router.note(
         f"QA starting: {issue_name}",
         tags=["qa", "start"],
@@ -1035,33 +1022,28 @@ async def run_qa(
         target_repo=target_repo,
     )
 
-    ai = AgentAI(AgentAIConfig(
-        model=model,
-        provider=ai_provider,
-        cwd=worktree_path,
-        max_turns=DEFAULT_AGENT_MAX_TURNS,
-        allowed_tools=[
-            Tool.READ, Tool.WRITE, Tool.EDIT,
-            Tool.BASH, Tool.GLOB, Tool.GREP,
-        ],
-        permission_mode=permission_mode or None,
-    ))
+    provider = "claude-code" if ai_provider == "claude" else ai_provider
 
     try:
-        response = await ai.run(
+        result = await router.harness(
             task_prompt,
             system_prompt=QA_SYSTEM_PROMPT,
+            model=model,
+            provider=provider,
+            tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
             output_schema=QAResult,
-            log_file=log_path,
+            cwd=worktree_path,
+            max_turns=DEFAULT_AGENT_MAX_TURNS,
+            permission_mode=permission_mode or None,
         )
-        if response.parsed is not None:
+        out = result.model_dump()
+        if out is not None:
             router.note(
-                f"QA complete: {issue_name}, passed={response.parsed.passed}",
+                f"QA complete: {issue_name}, passed={result.passed}",
                 tags=["qa", "complete"],
             )
-            result = response.parsed.model_dump()
-            result["iteration_id"] = iteration_id
-            return result
+            out["iteration_id"] = iteration_id
+            return out
     except Exception as e:
         router.note(
             f"QA agent failed: {issue_name}: {e}",
@@ -1098,10 +1080,6 @@ async def run_code_reviewer(
     """
     project_context = project_context or {}
     issue_name = issue.get("name", "?")
-    _artifacts_dir = project_context.get("artifacts_dir", "")
-    log_dir = os.path.join(_artifacts_dir, "logs") if _artifacts_dir else None
-    log_path = os.path.join(log_dir, f"reviewer_{issue_name}_iter_{iteration_id}.jsonl") if log_dir else None
-
     router.note(
         f"Code reviewer starting: {issue_name}",
         tags=["code_reviewer", "start"],
@@ -1121,32 +1099,30 @@ async def run_code_reviewer(
         target_repo=target_repo,
     )
 
-    ai = AgentAI(AgentAIConfig(
-        model=model,
-        provider=ai_provider,
-        cwd=worktree_path,
-        max_turns=DEFAULT_AGENT_MAX_TURNS,
-        allowed_tools=[Tool.READ, Tool.GLOB, Tool.GREP, Tool.BASH],
-        permission_mode=permission_mode or None,
-    ))
+    provider = "claude-code" if ai_provider == "claude" else ai_provider
 
     try:
-        response = await ai.run(
+        result = await router.harness(
             task_prompt,
             system_prompt=CODE_REVIEWER_SYSTEM_PROMPT,
+            model=model,
+            provider=provider,
+            tools=["Read", "Glob", "Grep", "Bash"],
             output_schema=CodeReviewResult,
-            log_file=log_path,
+            cwd=worktree_path,
+            max_turns=DEFAULT_AGENT_MAX_TURNS,
+            permission_mode=permission_mode or None,
         )
-        if response.parsed is not None:
+        out = result.model_dump()
+        if out is not None:
             router.note(
                 f"Code reviewer complete: {issue_name}, "
-                f"approved={response.parsed.approved}, "
-                f"blocking={response.parsed.blocking}",
+                f"approved={result.approved}, "
+                f"blocking={result.blocking}",
                 tags=["code_reviewer", "complete"],
             )
-            result = response.parsed.model_dump()
-            result["iteration_id"] = iteration_id
-            return result
+            out["iteration_id"] = iteration_id
+            return out
     except Exception as e:
         router.note(
             f"Code reviewer agent failed: {issue_name}: {e}",
