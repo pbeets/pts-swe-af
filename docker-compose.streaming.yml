@@ -1,0 +1,49 @@
+# Streaming executor environment.
+#
+# Self-contained: spins up its own control plane + swe-agent with
+# PlanDB-backed streaming execution.  Uses non-conflicting ports
+# (28080 / 28003) so it can run alongside other experiments.
+#
+# Usage:
+#   cd code/examples/af-swe
+#   docker compose -f docker-compose.streaming.yml up --build
+#   docker compose -f docker-compose.streaming.yml down -v
+
+services:
+  control-plane:
+    image: agentfield/control-plane:latest
+    ports:
+      - "28080:8080"
+    environment:
+      - AGENTFIELD_HTTP_ADDR=0.0.0.0:8080
+      - AGENTFIELD_STORAGE_MODE=local
+    volumes:
+      - agentfield-data:/data
+
+  swe-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      - AGENTFIELD_SERVER=http://control-plane:8080
+      - NODE_ID=swe-planner
+      - PORT=8003
+      - AGENT_CALLBACK_URL=http://swe-agent:8003
+      - PLANDB_DB=/data/plandb/plandb.db
+      # Streaming mode
+      - SWE_AF_STREAMING=1
+    ports:
+      - "28003:8003"
+    volumes:
+      - workspaces:/workspaces
+      - plandb-data:/data/plandb
+      - artifacts:/data/artifacts
+    depends_on:
+      - control-plane
+
+volumes:
+  agentfield-data:
+  workspaces:
+  plandb-data:
+  artifacts:

@@ -1,0 +1,37 @@
+# Large directories that should never be in the Docker build context
+.venv/
+venv/
+examples/
+.artifacts/
+.worktrees/
+.git/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment files (secrets — injected via env_file at runtime)
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Build outputs
+dist/
+build/
+*.bak
+
+# Claude
+.claude/

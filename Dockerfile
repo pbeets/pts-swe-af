@@ -6,9 +6,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # System deps: git (worktrees, branches), curl (healthcheck), jq (agent bash),
-# openssh-client (optional SSH git), gh CLI (draft PRs)
+# openssh-client (optional SSH git), gh CLI (draft PRs), plandb (task graph)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl openssh-client jq && \
+    # Install PlanDB from pre-built GitHub release
+    curl -fsSL https://raw.githubusercontent.com/Agent-Field/plandb/main/install.sh | sh && \
     # Install GitHub CLI
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
         | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
