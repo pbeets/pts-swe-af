@@ -40,7 +40,7 @@ RUN git config --global user.name "SWE-AF" && \
 # Install uv for fast package installation
 RUN pip install --no-cache-dir uv
 
-# Install project dependencies
+# Install project dependencies (agentfield from PyPI)
 COPY requirements-docker.txt /app/requirements.txt
 RUN uv pip install --system -r /app/requirements.txt
 

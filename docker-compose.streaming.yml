@@ -31,6 +31,10 @@ services:
       - PORT=8003
       - AGENT_CALLBACK_URL=http://swe-agent:8003
       - PLANDB_DB=/data/plandb/plandb.db
+      # Runtime: MiniMax via OpenRouter through opencode
+      - SWE_AF_HARNESS_PROVIDER=opencode
+      - SWE_AF_HARNESS_MODEL=minimax/minimax-m2.5
+      - SWE_AF_AI_MODEL=minimax/minimax-m2.5
       # Streaming mode
       - SWE_AF_STREAMING=1
     ports:
