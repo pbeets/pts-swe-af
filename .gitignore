@@ -22,6 +22,7 @@ venv/
 Thumbs.db
 .idea/
 .vscode/
+.cursor/
 *.swp
 *.swo
 
@@ -37,8 +38,9 @@ Thumbs.db
 # Root runtime artifacts for this node (example artifacts are versioned separately)
 /.artifacts/
 
-# Claude Code
+# Claude Code / Cursor / agent tooling
 .claude/
+.plandb.db
 
 # Python packaging / dist
 dist/
