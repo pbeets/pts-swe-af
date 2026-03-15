@@ -1,0 +1,12 @@
+{
+  "instance_id": "sphinx-doc__sphinx-7590",
+  "execution_id": "exec_20260313_075532_c9pev2k6",
+  "status": "timeout",
+  "duration_seconds": 3601.427198917023,
+  "build_result": {
+    "execution_id": "exec_20260313_075532_c9pev2k6",
+    "status": "timeout"
+  },
+  "error_message": "",
+  "generated_patch": ""
+}

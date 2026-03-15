@@ -1,0 +1,177 @@
+13:25:30 [INFO] httpx: HTTP Request: HEAD https://huggingface.co/datasets/MariusHobbhahn/swe-bench-verified-mini/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+13:25:30 [INFO] httpx: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/datasets/MariusHobbhahn/swe-bench-verified-mini/b316c349947c29963fce3f4a65967c9807a4b673/README.md "HTTP/1.1 200 OK"
+13:25:30 [INFO] httpx: HTTP Request: HEAD https://huggingface.co/datasets/MariusHobbhahn/swe-bench-verified-mini/resolve/b316c349947c29963fce3f4a65967c9807a4b673/swe-bench-verified-mini.py "HTTP/1.1 404 Not Found"
+13:25:31 [INFO] httpx: HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/MariusHobbhahn/swe-bench-verified-mini/MariusHobbhahn/swe-bench-verified-mini.py "HTTP/1.1 404 Not Found"
+13:25:31 [INFO] httpx: HTTP Request: GET https://huggingface.co/api/datasets/MariusHobbhahn/swe-bench-verified-mini/revision/b316c349947c29963fce3f4a65967c9807a4b673 "HTTP/1.1 200 OK"
+13:25:31 [INFO] httpx: HTTP Request: HEAD https://huggingface.co/datasets/MariusHobbhahn/swe-bench-verified-mini/resolve/b316c349947c29963fce3f4a65967c9807a4b673/.huggingface.yaml "HTTP/1.1 404 Not Found"
+13:25:32 [INFO] httpx: HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=MariusHobbhahn/swe-bench-verified-mini "HTTP/1.1 200 OK"
+13:25:32 [INFO] httpx: HTTP Request: GET https://huggingface.co/api/datasets/MariusHobbhahn/swe-bench-verified-mini/tree/b316c349947c29963fce3f4a65967c9807a4b673/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+13:25:32 [INFO] httpx: HTTP Request: GET https://huggingface.co/api/datasets/MariusHobbhahn/swe-bench-verified-mini/tree/b316c349947c29963fce3f4a65967c9807a4b673?recursive=false&expand=false "HTTP/1.1 200 OK"
+13:25:32 [INFO] httpx: HTTP Request: HEAD https://huggingface.co/datasets/MariusHobbhahn/swe-bench-verified-mini/resolve/b316c349947c29963fce3f4a65967c9807a4b673/dataset_infos.json "HTTP/1.1 404 Not Found"
+13:25:32 [INFO] swe_bench: Selected 1 SWE-Bench instances
+13:25:32 [INFO] benchmarks.swe_bench.runner: === Batch 1/1 (1 instances) ===
+13:25:32 [INFO] httpx: HTTP Request: POST http://localhost:8080/api/v1/execute/async/swe-planner.build "HTTP/1.1 202 Accepted"
+13:25:32 [INFO] benchmarks.swe_bench.runner: Submitted django__django-11885 → execution_id=exec_20260313_075532_x5veiydp (model=openrouter/moonshotai/kimi-k2.5)
+13:26:02 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:26:32 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:27:02 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:27:32 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:27:32 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (120s elapsed)
+13:28:02 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:28:32 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:29:02 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:29:32 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:29:32 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (240s elapsed)
+13:30:02 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:30:32 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:31:02 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:31:32 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:31:32 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (360s elapsed)
+13:32:02 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:32:32 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:33:02 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:33:32 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:33:32 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (480s elapsed)
+13:34:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:34:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:35:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:35:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:35:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (600s elapsed)
+13:36:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:36:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:37:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:37:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:37:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (720s elapsed)
+13:38:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:38:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:39:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:39:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:39:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (840s elapsed)
+13:40:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:40:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:41:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:41:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:41:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (960s elapsed)
+13:42:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:42:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:43:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:43:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:43:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (1080s elapsed)
+13:44:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:44:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:45:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:45:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:45:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (1200s elapsed)
+13:46:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:46:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:47:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:47:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:47:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (1320s elapsed)
+13:48:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:48:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:49:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:49:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:49:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (1440s elapsed)
+13:50:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:50:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:51:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:51:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:51:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (1560s elapsed)
+13:52:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:52:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:53:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:53:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:53:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (1680s elapsed)
+13:54:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:54:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:55:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:55:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:55:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (1800s elapsed)
+13:56:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:56:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:57:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:57:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:57:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (1920s elapsed)
+13:58:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:58:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:59:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:59:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+13:59:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (2040s elapsed)
+14:00:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:00:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:01:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:01:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:01:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (2160s elapsed)
+14:02:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:02:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:03:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:03:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:03:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (2280s elapsed)
+14:04:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:04:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:05:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:05:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:05:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (2400s elapsed)
+14:06:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:06:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:07:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:07:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:07:33 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (2520s elapsed)
+14:08:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:08:33 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:09:03 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:09:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:09:34 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (2640s elapsed)
+14:10:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:10:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:11:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:11:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:11:34 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (2760s elapsed)
+14:12:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:12:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:13:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:13:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:13:34 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (2880s elapsed)
+14:14:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:14:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:15:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:15:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:15:34 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (3000s elapsed)
+14:16:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:16:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:17:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:17:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:17:34 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (3120s elapsed)
+14:18:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:18:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:19:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:19:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:19:34 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (3240s elapsed)
+14:20:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:20:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:21:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:21:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:21:34 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (3360s elapsed)
+14:22:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:22:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:23:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:23:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:23:34 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (3480s elapsed)
+14:24:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:24:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:25:04 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:25:34 [INFO] httpx: HTTP Request: GET http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp "HTTP/1.1 200 OK"
+14:25:34 [INFO] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp still running (3600s elapsed)
+14:25:34 [WARNING] benchmarks.swe_bench.runner: Execution exec_20260313_075532_x5veiydp timed out after 3600s
+14:25:34 [INFO] httpx: HTTP Request: POST http://localhost:8080/api/v1/executions/exec_20260313_075532_x5veiydp/cancel "HTTP/1.1 200 OK"
+14:25:34 [INFO] benchmarks.swe_bench.runner: Progress: 1/1 — django__django-11885 → timeout (3601.4s)
+14:25:34 [INFO] benchmarks.swe_bench.runner: Batch 1 summary: {'timeout': 1}
+14:25:34 [INFO] swe_bench: Run completed.
+{
+  "total": 1,
+  "completed": 0,
+  "failed": 0,
+  "error": 0,
+  "timeout": 1,
+  "avg_duration_seconds": 3601.4364737080177
+}

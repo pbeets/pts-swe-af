@@ -1,0 +1,12 @@
+{
+  "instance_id": "django__django-12406",
+  "execution_id": "exec_20260313_075637_ad5oa6b1",
+  "status": "timeout",
+  "duration_seconds": 3600.872537374962,
+  "build_result": {
+    "execution_id": "exec_20260313_075637_ad5oa6b1",
+    "status": "timeout"
+  },
+  "error_message": "",
+  "generated_patch": ""
+}

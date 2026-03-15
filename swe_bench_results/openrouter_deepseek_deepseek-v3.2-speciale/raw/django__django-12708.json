@@ -1,0 +1,15 @@
+{
+  "instance_id": "django__django-12708",
+  "execution_id": "exec_20260313_050310_y4u2rdan",
+  "status": "failed",
+  "duration_seconds": 570.1793030409608,
+  "build_result": {
+    "execution_id": "exec_20260313_050310_y4u2rdan",
+    "run_id": "run_20260313_050310_hufno7a7",
+    "status": "cancelled",
+    "started_at": "2026-03-13T05:03:10Z",
+    "webhook_registered": false
+  },
+  "error_message": "",
+  "generated_patch": ""
+}

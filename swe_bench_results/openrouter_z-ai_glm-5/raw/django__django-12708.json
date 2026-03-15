@@ -1,0 +1,18 @@
+{
+  "instance_id": "django__django-12708",
+  "execution_id": "exec_20260313_053447_3h76znzd",
+  "status": "failed",
+  "duration_seconds": 1410.3627905420726,
+  "build_result": {
+    "execution_id": "exec_20260313_053447_3h76znzd",
+    "run_id": "run_20260313_053447_bwd8wfqw",
+    "status": "failed",
+    "error": "plan failed (status=failed): run_product_manager failed (status=failed): Product manager failed to produce a valid PRD",
+    "started_at": "2026-03-13T05:34:47Z",
+    "completed_at": "2026-03-13T05:58:04Z",
+    "duration_ms": 1396505,
+    "webhook_registered": false
+  },
+  "error_message": "",
+  "generated_patch": ""
+}
