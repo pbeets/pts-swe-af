@@ -48,7 +48,7 @@ async def invoke_replanner(
             provider=provider,
             model=config.replan_model,
             max_turns=DEFAULT_AGENT_MAX_TURNS,
-            tools=["Read", "Glob", "Grep", "Bash"],
+            tools=["Read", "Write", "Glob", "Grep", "Bash"],
             permission_mode=None,
             system_prompt=SYSTEM_PROMPT,
             cwd=dag_state.repo_path or ".",
