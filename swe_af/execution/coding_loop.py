@@ -557,6 +557,33 @@ async def run_coding_loop(
     guidance = issue.get("guidance") or {}
     needs_deeper_qa = guidance.get("needs_deeper_qa", False)
 
+    # Runtime complexity classification (replaces static needs_deeper_qa)
+    try:
+        gate_result = await _call_with_timeout(
+            call_fn(
+                f"{node_id}.run_issue_complexity_gate",
+                issue=issue,
+                model=config.issue_complexity_gate_model,
+                ai_provider=config.ai_provider,
+            ),
+            timeout=30,  # fast gate, short timeout
+            label=f"complexity_gate:{issue_name}",
+        )
+        complexity = gate_result.get("complexity", "standard")
+        needs_deeper_qa = gate_result.get("needs_qa", needs_deeper_qa)
+        # Override only if gate is confident
+        if not gate_result.get("confident", False):
+            # Fall back to static guidance
+            needs_deeper_qa = guidance.get("needs_deeper_qa", False)
+        if note_fn:
+            note_fn(
+                f"Complexity gate: {issue_name} -> complexity={complexity}, "
+                f"needs_qa={needs_deeper_qa}, confident={gate_result.get('confident')}",
+                tags=["coding_loop", "complexity_gate", issue_name],
+            )
+    except Exception:
+        pass  # Fall back to static guidance on gate failure
+
     # Slim project context — paths only, agents read files if needed
     project_context = {
         "prd_path": dag_state.prd_path,

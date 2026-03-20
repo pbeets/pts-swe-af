@@ -19,6 +19,7 @@ from swe_af.execution.schemas import (
     GitInitResult,
     IntegrationTestResult,
     IssueAdvisorDecision,
+    IssueComplexityGate,
     MergeResult,
     QAResult,
     QASynthesisResult,
@@ -53,6 +54,10 @@ from swe_af.prompts.merger import SYSTEM_PROMPT as MERGER_SYSTEM_PROMPT
 from swe_af.prompts.merger import merger_task_prompt
 from swe_af.prompts.qa import SYSTEM_PROMPT as QA_SYSTEM_PROMPT
 from swe_af.prompts.qa import qa_task_prompt
+from swe_af.prompts.issue_complexity_gate import (
+    SYSTEM_PROMPT as ISSUE_COMPLEXITY_GATE_SYSTEM_PROMPT,
+)
+from swe_af.prompts.issue_complexity_gate import issue_complexity_gate_task_prompt
 from swe_af.prompts.qa_synthesizer import SYSTEM_PROMPT as QA_SYNTHESIZER_SYSTEM_PROMPT
 from swe_af.prompts.qa_synthesizer import qa_synthesizer_task_prompt
 from swe_af.prompts.replanner import SYSTEM_PROMPT as REPLANNER_SYSTEM_PROMPT
@@ -1099,6 +1104,51 @@ async def run_code_reviewer(
         summary=f"Code reviewer agent failed for {issue_name} — not blocking",
         blocking=False,
         iteration_id=iteration_id,
+    ).model_dump()
+
+
+@router.reasoner()
+async def run_issue_complexity_gate(
+    issue: dict,
+    model: str = "haiku",
+    ai_provider: str = "claude",
+) -> dict:
+    """Fast .ai() gate to classify issue complexity at runtime.
+
+    Returns an IssueComplexityGate dict with complexity, needs_qa, confident.
+    """
+    router.note(
+        "Issue complexity gate starting",
+        tags=["issue_complexity_gate", "start"],
+    )
+
+    task_prompt = issue_complexity_gate_task_prompt(issue=issue)
+
+    try:
+        result = await router.ai(
+            task_prompt,
+            system=ISSUE_COMPLEXITY_GATE_SYSTEM_PROMPT,
+            schema=IssueComplexityGate,
+            model=model,
+        )
+        if result.parsed is not None:
+            router.note(
+                f"Issue complexity gate complete: complexity={result.parsed.complexity}, "
+                f"needs_qa={result.parsed.needs_qa}, confident={result.parsed.confident}",
+                tags=["issue_complexity_gate", "complete"],
+            )
+            return result.parsed.model_dump()
+    except Exception as e:
+        router.note(
+            f"Issue complexity gate failed: {e}",
+            tags=["issue_complexity_gate", "error"],
+        )
+
+    # Fallback: default to standard complexity, defer to static guidance
+    return IssueComplexityGate(
+        complexity="standard",
+        needs_qa=False,
+        confident=False,
     ).model_dump()
 
 
