@@ -278,6 +278,74 @@ async def run_issue_advisor(
     return fallback.model_dump()
 
 
+# ---------------------------------------------------------------------------
+# Replanner triage gate (.ai() fast classifier)
+# ---------------------------------------------------------------------------
+
+
+@router.reasoner()
+async def run_replanner_triage_gate(
+    failed_issues: list[dict],
+    dag_state_summary: dict,
+    model: str = "haiku",
+    ai_provider: str = "claude",
+) -> dict:
+    """Fast .ai() triage of failures before invoking the expensive replanner.
+
+    Classifies failure type and recommends whether full DAG replanning is
+    needed or a cheaper action (skip downstream, retry) suffices.
+
+    Returns a ReplannerTriageGate dict.
+    """
+    from swe_af.execution.schemas import ReplannerTriageGate
+    from swe_af.prompts.replanner_triage_gate import (
+        SYSTEM_PROMPT as TRIAGE_GATE_SYSTEM_PROMPT,
+    )
+    from swe_af.prompts.replanner_triage_gate import (
+        replanner_triage_gate_task_prompt,
+    )
+
+    router.note(
+        f"Replanner triage gate: classifying {len(failed_issues)} failures",
+        tags=["replanner_triage_gate", "start"],
+    )
+
+    task_prompt = replanner_triage_gate_task_prompt(
+        failed_issues=failed_issues,
+        dag_state_summary=dag_state_summary,
+    )
+
+    try:
+        result = await router.ai(
+            task_prompt,
+            system=TRIAGE_GATE_SYSTEM_PROMPT,
+            schema=ReplannerTriageGate,
+            model=model,
+        )
+        if result.parsed is not None:
+            router.note(
+                f"Replanner triage gate: type={result.parsed.failure_type}, "
+                f"action={result.parsed.recommended_action}, "
+                f"confident={result.parsed.confident}",
+                tags=["replanner_triage_gate", "complete"],
+            )
+            return result.parsed.model_dump()
+    except Exception as e:
+        router.note(
+            f"Replanner triage gate failed: {e}",
+            tags=["replanner_triage_gate", "error"],
+        )
+
+    # Fallback: conservative — assume replan is needed
+    return ReplannerTriageGate(
+        needs_replan=True,
+        failure_type="structural",
+        recommended_action="replan",
+        confident=False,
+        reasoning="Triage gate failed — falling back to full replanner.",
+    ).model_dump()
+
+
 @router.reasoner()
 async def run_replanner(
     dag_state: dict,
