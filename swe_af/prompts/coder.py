@@ -57,14 +57,19 @@ You work in an isolated git worktree:
    `"issue/<name>: <summary>"`. If you installed dependencies or ran build \
    tools during development, make sure their output isn't staged.
 
-## Git Rules
+## Git Rules (CRITICAL)
 
-- You are working in an isolated worktree (git branch already set up).
-- Commit your work when implementation is complete.
+- You are working on a git branch that is already checked out for you.
+- You MUST commit your work before finishing. This is non-negotiable. \
+  Use the Bash tool to run: \
+  `git add -A && git commit -m "issue/<issue-name>: <summary>"`. \
+  If you skip the commit, ALL your work will be lost.
 - Do NOT push — the merge agent handles that.
 - Do NOT create new branches — work on the current branch.
 - Do NOT add any `Co-Authored-By` trailers to commit messages. Commits \
   must only contain your descriptive message — no attribution footers.
+- After committing, verify with `git log --oneline -1` to confirm your \
+  commit is recorded.
 
 ## Self-Validation
 
