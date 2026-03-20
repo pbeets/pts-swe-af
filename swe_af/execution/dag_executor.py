@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import re
+import subprocess
 import traceback
 from typing import Callable
 
@@ -233,105 +234,81 @@ def _predict_merge_conflicts(
     return bool(overlapping), overlapping
 
 
-async def _fast_git_merge(
+async def _fast_shell_merge(
     repo_path: str,
     integration_branch: str,
     branches: list[dict],
-    call_fn: Callable,
-    node_id: str,
     note_fn: Callable | None = None,
 ) -> dict:
-    """Perform a simple git merge without LLM — for conflict-free merges.
+    """Merge branches using direct git commands — no LLM needed.
 
-    Uses the workspace cleanup harness-style approach: a lightweight harness
-    call that just runs git merge commands sequentially.
+    Attempts git merge --no-edit for each branch sequentially.
+    Returns a MergeResult-compatible dict.
 
-    Returns a MergeResult-compatible dict. Falls back to None on failure,
-    signalling the caller to retry with the full merger.
+    If any merge fails (conflict), returns success=False so the caller
+    can fall back to the full merger harness.
     """
-    branch_names = [b.get("branch_name", "?") for b in branches]
-
-    if note_fn:
-        note_fn(
-            f"Fast merge (no LLM): merging {branch_names} into {integration_branch}",
-            tags=["execution", "merge", "fast_merge", "start"],
-        )
-
     merged: list[str] = []
     failed: list[str] = []
 
-    # Build a simple git merge script
-    merge_commands = [f"cd {repo_path}", f"git checkout {integration_branch}"]
-    for b in branches:
-        name = b.get("branch_name", "")
-        if name:
-            merge_commands.append(
-                f"git merge --no-edit {name} || echo 'MERGE_FAILED:{name}'"
-            )
-
-    script = " && ".join(merge_commands)
-
-    try:
-        # Use the workspace setup harness with a minimal merge task
-        result = await call_fn(
-            f"{node_id}.run_workspace_cleanup",
-            repo_path=repo_path,
-            worktrees_dir="",
-            branches_to_clean=[],
-            artifacts_dir="",
-            level=0,
-            model="haiku",
-            ai_provider="claude",
-        )
-        # The cleanup call is just to have a valid harness — the real work
-        # is done via direct git commands below. Since we can't run raw
-        # subprocess from here (we go through call_fn), we use a minimal
-        # merger call with trivial branches.
-    except Exception:
-        pass
-
-    # Since we need to go through the AgentField call_fn interface and
-    # there's no raw-subprocess reasoner, we use run_merger with the
-    # knowledge that these branches have no conflicts. The merger harness
-    # will simply run `git merge` for each branch and succeed quickly
-    # because there are no conflicts to resolve. This is still cheaper
-    # than a full conflict-resolution merge because the LLM has nothing
-    # to reason about.
-    #
-    # The real savings come from skipping this call entirely when we add
-    # a direct git merge reasoner. For now, we construct a MergeResult
-    # optimistically and let the caller fall back if it fails.
-
-    # Instead of calling the full merger, we call it with an explicit hint
-    # that no conflicts are expected, which lets it exit early.
-    merge_result = await call_fn(
-        f"{node_id}.run_merger",
-        repo_path=repo_path,
-        integration_branch=integration_branch,
-        branches_to_merge=branches,
-        file_conflicts=[],  # Empty — no conflicts expected
-        prd_summary="[Fast merge: no file overlaps detected — simple git merge only]",
-        architecture_summary="",
-        artifacts_dir="",
-        level=0,
-        model="haiku",  # Use cheapest model since no reasoning needed
-        ai_provider="claude",
+    # Ensure we're on the integration branch
+    subprocess.run(
+        ["git", "checkout", integration_branch],
+        cwd=repo_path, capture_output=True, timeout=10,
     )
 
-    if merge_result.get("success"):
-        if note_fn:
-            note_fn(
-                f"Fast merge succeeded: {merge_result.get('merged_branches', [])}",
-                tags=["execution", "merge", "fast_merge", "complete"],
-            )
-    else:
-        if note_fn:
-            note_fn(
-                "Fast merge failed — will fall back to full merger",
-                tags=["execution", "merge", "fast_merge", "fallback"],
-            )
+    pre_merge_sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo_path, capture_output=True, text=True, timeout=5,
+    ).stdout.strip()
 
-    return merge_result
+    for branch_info in branches:
+        branch_name = branch_info.get("branch_name", "")
+        if not branch_name:
+            continue
+
+        result = subprocess.run(
+            ["git", "merge", "--no-edit", branch_name],
+            cwd=repo_path, capture_output=True, text=True, timeout=30,
+        )
+
+        if result.returncode == 0:
+            merged.append(branch_name)
+        else:
+            # Conflict or error — abort this merge and report failure
+            subprocess.run(
+                ["git", "merge", "--abort"],
+                cwd=repo_path, capture_output=True, timeout=10,
+            )
+            failed.append(branch_name)
+
+    merge_sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo_path, capture_output=True, text=True, timeout=5,
+    ).stdout.strip()
+
+    success = len(failed) == 0 and len(merged) > 0
+
+    if note_fn:
+        note_fn(
+            f"Fast shell merge: {len(merged)} merged, {len(failed)} failed",
+            tags=["execution", "fast_merge", "complete" if success else "partial"],
+        )
+
+    return {
+        "success": success,
+        "merged_branches": merged,
+        "failed_branches": failed,
+        "conflict_resolutions": [],
+        "merge_commit_sha": merge_sha,
+        "pre_merge_sha": pre_merge_sha,
+        "needs_integration_test": len(merged) > 1,
+        "integration_test_rationale": f"Fast merge of {len(merged)} branches",
+        "summary": (
+            f"Fast shell merge: {len(merged)} merged"
+            + (f", {len(failed)} need LLM merger" if failed else "")
+        ),
+    }
 
 
 async def _merge_level_branches(
@@ -436,13 +413,11 @@ async def _merge_level_branches(
                     )
 
         if use_fast_merge:
-            # --- Fast merge path (cheap, no LLM reasoning) ---
-            merge_result = await _fast_git_merge(
+            # --- Fast merge path (direct git, no LLM) ---
+            merge_result = await _fast_shell_merge(
                 repo_path=dag_state.repo_path,
                 integration_branch=dag_state.git_integration_branch,
                 branches=completed_branches,
-                call_fn=call_fn,
-                node_id=node_id,
                 note_fn=note_fn,
             )
 
@@ -609,12 +584,10 @@ async def _merge_level_branches(
                     )
 
         if repo_use_fast:
-            result = await _fast_git_merge(
+            result = await _fast_shell_merge(
                 repo_path=ws_repo.absolute_path,
                 integration_branch=integration_branch,
                 branches=branches_to_merge,
-                call_fn=call_fn,
-                node_id=node_id,
                 note_fn=note_fn,
             )
             # Fall back to full merger if fast merge failed
