@@ -1557,6 +1557,71 @@ async def run_dag(
                 issue_by_name, file_conflicts, note_fn,
             )
 
+            # Post-merge batch review: see the combined diff of all issues
+            if merge_result and merge_result.get("success") and level_result.completed:
+                try:
+                    completed_for_review = [
+                        {
+                            "issue_name": r.issue_name,
+                            "files_changed": r.files_changed,
+                            "summary": r.result_summary,
+                        }
+                        for r in level_result.completed
+                    ]
+                    if note_fn:
+                        note_fn(
+                            f"Running batch reviewer on {len(completed_for_review)} merged issues",
+                            tags=["execution", "batch_review", "start"],
+                        )
+                    batch_review = await _call_with_timeout(
+                        call_fn(
+                            f"{node_id}.run_batch_reviewer",
+                            repo_path=dag_state.repo_path,
+                            integration_branch=dag_state.git_integration_branch,
+                            completed_issues=completed_for_review,
+                            prd_summary=dag_state.prd_summary,
+                            architecture_summary=dag_state.architecture_summary,
+                            model=config.batch_reviewer_model,
+                            permission_mode=config.permission_mode,
+                            ai_provider=config.ai_provider,
+                        ),
+                        timeout=config.agent_timeout_seconds,
+                        label="batch_reviewer",
+                    )
+                    # Log results — informational, does not block pipeline
+                    batch_approved = batch_review.get("approved", True)
+                    blocking_count = len(batch_review.get("blocking_issues", []))
+                    concerns = batch_review.get("cross_issue_concerns", [])
+                    if note_fn:
+                        note_fn(
+                            f"Batch review complete: approved={batch_approved}, "
+                            f"blocking_issues={blocking_count}, "
+                            f"cross_issue_concerns={len(concerns)}",
+                            tags=["execution", "batch_review", "complete"],
+                        )
+                        if not batch_approved:
+                            note_fn(
+                                f"Batch review found blocking issues: "
+                                f"{batch_review.get('summary', '')}",
+                                tags=["execution", "batch_review", "blocking"],
+                            )
+                        for concern in concerns:
+                            note_fn(
+                                f"Cross-issue concern: {concern}",
+                                tags=["execution", "batch_review", "concern"],
+                            )
+                    dag_state.merge_results.append({
+                        "type": "batch_review",
+                        "level": dag_state.current_level,
+                        "result": batch_review,
+                    })
+                except Exception as e:
+                    if note_fn:
+                        note_fn(
+                            f"Batch reviewer failed (non-blocking): {e}",
+                            tags=["execution", "batch_review", "error"],
+                        )
+
             # Run integration tests if merger says so
             if merge_result:
                 await _run_integration_tests(
