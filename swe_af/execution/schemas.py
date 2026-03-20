@@ -465,6 +465,25 @@ class IssueComplexityGate(BaseModel):
     confident: bool
 
 
+class ReviewSanityGate(BaseModel):
+    """Fast .ai() per-iteration sanity check — replaces full harness review."""
+
+    likely_clean: bool  # No obvious issues detected
+    risk_areas: list[str]  # Areas that need attention (empty if clean)
+    action: str  # "approve" | "fix" | "block"
+    confident: bool
+    summary: str
+
+
+class BatchReviewResult(BaseModel):
+    """Output from the post-merge batch reviewer."""
+
+    approved: bool
+    blocking_issues: list[dict[str, Any]]  # [{file, line, severity, description}]
+    cross_issue_concerns: list[str]  # Issues only visible in combined diff
+    summary: str
+
+
 class QASynthesisAction(str, Enum):
     """Decision from the feedback synthesizer."""
 
@@ -508,6 +527,8 @@ ROLE_TO_MODEL_FIELD: dict[str, str] = {
     "integration_tester": "integration_tester_model",
     "issue_complexity_gate": "issue_complexity_gate_model",
     "replanner_triage_gate": "replanner_triage_gate_model",
+    "review_sanity_gate": "review_sanity_gate_model",
+    "batch_reviewer": "batch_reviewer_model",
 }
 
 MODEL_ROLE_KEYS: list[str] = list(ROLE_TO_MODEL_FIELD)
@@ -538,6 +559,7 @@ _RUNTIME_BASE_MODELS: dict[str, dict[str, str]] = {
         "issue_complexity_gate_model": "haiku",
         "replanner_triage_gate_model": "haiku",
         "merge_conflict_gate_model": "haiku",
+        "review_sanity_gate_model": "haiku",
     },
     "open_code": {
         **{field: "minimax/minimax-m2.5" for field in ALL_MODEL_FIELDS},
@@ -962,3 +984,11 @@ class ExecutionConfig(BaseModel):
     @property
     def replanner_triage_gate_model(self) -> str:
         return self._model_for("replanner_triage_gate_model")
+
+    @property
+    def review_sanity_gate_model(self) -> str:
+        return self._model_for("review_sanity_gate_model")
+
+    @property
+    def batch_reviewer_model(self) -> str:
+        return self._model_for("batch_reviewer_model")

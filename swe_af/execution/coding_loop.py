@@ -297,11 +297,66 @@ async def _run_default_path(
     workspace_manifest: dict | None = None,
     target_repo: str = "",
 ) -> tuple[str, str, dict | None]:
-    """Default path: reviewer only (2 LLM calls total including coder).
+    """Default path: fast .ai() sanity gate with fallback to full reviewer.
+
+    Tries the lightweight sanity gate first. If the gate is confident, its
+    action is used directly.  If not confident, falls back to the full
+    .harness() code reviewer.
 
     Returns (action, summary, review_result).
     """
     permission_mode = config.permission_mode
+
+    # --- Try fast .ai() sanity gate first ---
+    gate_result = None
+    try:
+        gate_result = await _call_with_timeout(
+            call_fn(
+                f"{node_id}.run_review_sanity_gate",
+                coder_result=coder_result,
+                issue=issue,
+                iteration_id=iteration_id,
+                model=config.review_sanity_gate_model,
+                ai_provider=config.ai_provider,
+            ),
+            timeout=min(timeout, 120),  # sanity gate should be fast
+            label=f"sanity_gate:{issue_name}:default",
+        )
+    except Exception as e:
+        if note_fn:
+            note_fn(
+                f"Sanity gate failed: {issue_name}: {e} — falling back to full reviewer",
+                tags=["coding_loop", "sanity_gate_error", issue_name],
+            )
+
+    # If sanity gate succeeded and is confident, use its decision directly
+    if gate_result and gate_result.get("confident", False):
+        action = gate_result.get("action", "fix")
+        summary = gate_result.get("summary", "")
+        if note_fn:
+            note_fn(
+                f"Sanity gate (confident): action={action}",
+                tags=["coding_loop", "sanity_gate", issue_name],
+            )
+        # Wrap gate output as a review_result for iteration history compatibility
+        review_result = {
+            "approved": action == "approve",
+            "blocking": action == "block",
+            "summary": summary,
+            "debt_items": [],
+            "iteration_id": iteration_id,
+            "review_type": "sanity_gate",
+            "risk_areas": gate_result.get("risk_areas", []),
+        }
+        return action, summary, review_result
+
+    # --- Fallback: full .harness() code reviewer ---
+    if note_fn:
+        reason = "not confident" if gate_result else "gate failed"
+        note_fn(
+            f"Falling back to full reviewer ({reason}): {issue_name}",
+            tags=["coding_loop", "reviewer_fallback", issue_name],
+        )
 
     try:
         review_result = await _call_with_timeout(
@@ -338,7 +393,7 @@ async def _run_default_path(
             tags=["coding_loop", "feedback", issue_name],
         )
 
-    # Reviewer is sole gatekeeper on default path
+    # Reviewer is sole gatekeeper when sanity gate was not confident
     approved = review_result.get("approved", False)
     blocking = review_result.get("blocking", False)
     summary = review_result.get("summary", "")
