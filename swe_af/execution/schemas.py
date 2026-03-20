@@ -342,6 +342,14 @@ class WorkspaceInfo(BaseModel):
     worktree_path: str
 
 
+class MergeConflictGate(BaseModel):
+    """Fast .ai() assessment of whether overlapping files will actually conflict."""
+
+    will_conflict: bool
+    reason: str
+    confident: bool
+
+
 class MergeResult(BaseModel):
     """Structured output from the merger agent."""
 
@@ -496,6 +504,7 @@ ROLE_TO_MODEL_FIELD: dict[str, str] = {
     "verifier": "verifier_model",
     "git": "git_model",
     "merger": "merger_model",
+    "merge_conflict_gate": "merge_conflict_gate_model",
     "integration_tester": "integration_tester_model",
     "issue_complexity_gate": "issue_complexity_gate_model",
     "replanner_triage_gate": "replanner_triage_gate_model",
@@ -528,6 +537,7 @@ _RUNTIME_BASE_MODELS: dict[str, dict[str, str]] = {
         "qa_synthesizer_model": "haiku",
         "issue_complexity_gate_model": "haiku",
         "replanner_triage_gate_model": "haiku",
+        "merge_conflict_gate_model": "haiku",
     },
     "open_code": {
         **{field: "minimax/minimax-m2.5" for field in ALL_MODEL_FIELDS},
@@ -936,6 +946,10 @@ class ExecutionConfig(BaseModel):
     @property
     def merger_model(self) -> str:
         return self._model_for("merger_model")
+
+    @property
+    def merge_conflict_gate_model(self) -> str:
+        return self._model_for("merge_conflict_gate_model")
 
     @property
     def integration_tester_model(self) -> str:
