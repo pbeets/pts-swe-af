@@ -369,6 +369,20 @@ class IntegrationTestResult(BaseModel):
     summary: str
 
 
+class ReplannerTriageGate(BaseModel):
+    """Fast .ai() triage of failures before invoking expensive replanner.
+
+    Classifies failure type and recommends whether full DAG replanning is
+    needed or a cheaper action (retry, skip downstream) suffices.
+    """
+
+    needs_replan: bool  # True if DAG restructuring is needed
+    failure_type: str  # "transient" | "fixable" | "structural" | "environmental"
+    recommended_action: str  # "continue" | "retry" | "skip_downstream" | "replan"
+    confident: bool
+    reasoning: str
+
+
 class RetryAdvice(BaseModel):
     """Structured output from the retry advisor agent."""
 
@@ -476,6 +490,7 @@ ROLE_TO_MODEL_FIELD: dict[str, str] = {
     "git": "git_model",
     "merger": "merger_model",
     "integration_tester": "integration_tester_model",
+    "replanner_triage_gate": "replanner_triage_gate_model",
 }
 
 MODEL_ROLE_KEYS: list[str] = list(ROLE_TO_MODEL_FIELD)
@@ -503,6 +518,7 @@ _RUNTIME_BASE_MODELS: dict[str, dict[str, str]] = {
     "claude_code": {
         **{field: "sonnet" for field in ALL_MODEL_FIELDS},
         "qa_synthesizer_model": "haiku",
+        "replanner_triage_gate_model": "haiku",
     },
     "open_code": {
         **{field: "minimax/minimax-m2.5" for field in ALL_MODEL_FIELDS},
@@ -915,3 +931,7 @@ class ExecutionConfig(BaseModel):
     @property
     def integration_tester_model(self) -> str:
         return self._model_for("integration_tester_model")
+
+    @property
+    def replanner_triage_gate_model(self) -> str:
+        return self._model_for("replanner_triage_gate_model")

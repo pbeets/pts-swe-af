@@ -1673,7 +1673,51 @@ async def run_dag(
         ]
 
         if unrecoverable:
-            if config.enable_replanning and dag_state.replan_count < config.max_replans:
+            # Fast triage gate: classify failures before expensive replanning
+            _skip_replan = False
+            if (
+                call_fn
+                and config.enable_replanning
+                and dag_state.replan_count < config.max_replans
+            ):
+                try:
+                    triage = await _call_with_timeout(
+                        call_fn(
+                            f"{node_id}.run_replanner_triage_gate",
+                            failed_issues=[f.model_dump() for f in unrecoverable],
+                            dag_state_summary={
+                                "total_issues": len(dag_state.all_issues),
+                                "completed": len(dag_state.completed_issues),
+                                "failed": len(dag_state.failed_issues),
+                                "current_level": dag_state.current_level,
+                                "replan_count": dag_state.replan_count,
+                            },
+                            model=config.replanner_triage_gate_model,
+                            ai_provider=config.ai_provider,
+                        ),
+                        timeout=30,
+                        label="replanner_triage",
+                    )
+
+                    if not triage.get("needs_replan", True) and triage.get(
+                        "confident", False
+                    ):
+                        # Gate is confident no replan needed — skip expensive replanner
+                        recommended = triage.get(
+                            "recommended_action", "skip_downstream"
+                        )
+                        if note_fn:
+                            note_fn(
+                                f"Replanner triage: {triage.get('failure_type')} failure, "
+                                f"action={recommended} (skipping expensive replan)",
+                                tags=["execution", "replan_triage", "skip"],
+                            )
+                        dag_state = _skip_downstream(dag_state, unrecoverable)
+                        _skip_replan = True
+                except Exception:
+                    pass  # Gate failed — fall through to normal replanning
+
+            if not _skip_replan and config.enable_replanning and dag_state.replan_count < config.max_replans:
                 # Invoke replanner (via call_fn if available, else direct)
                 if call_fn:
                     decision = await _invoke_replanner_via_call(
