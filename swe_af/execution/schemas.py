@@ -712,7 +712,7 @@ class BuildConfig(BaseModel):
     # NOT toggle a draft → ready promotion — passing CI is success, failing
     # CI leaves the PR open with visible failing checks. When False, the
     # build returns immediately after creating the PR.
-    check_ci: bool = True
+    check_ci: bool = False
     max_ci_fix_cycles: int = 2  # number of fix → repush → re-watch iterations
     ci_wait_seconds: int = 1500  # wall-clock cap per watch (25 min)
     ci_poll_seconds: int = 30  # poll interval for `gh pr checks --json`
@@ -1011,7 +1011,7 @@ class ExecutionConfig(BaseModel):
     )
     # Mirrored from BuildConfig so the post-PR CI gate sees the same caps when
     # invoked from the build pipeline.
-    check_ci: bool = True
+    check_ci: bool = False
     max_ci_fix_cycles: int = 2
     ci_wait_seconds: int = 1500
     ci_poll_seconds: int = 30
